@@ -58,8 +58,8 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 
 | Phase | Features |
 |-------|----------|
-| **Phase 1 (current)** | Auth, Expense Tracking, Budget Planning, Dashboard |
-| Phase 2 | Income, Bills, Savings Goals, Analytics |
+| Phase 1 | Auth, Expense Tracking, Budget Planning, Dashboard |
+| **Phase 2(Current)* | Income, Bills, Savings Goals, Analytics |
 | Phase 3 | Net Worth, AI Insights, Chatbot, Gamification |
 | Phase 4 | Multi-currency, PWA, CSV Import/Export |
 | Phase 5 | Bank Sync (Plaid), Advanced AI |
