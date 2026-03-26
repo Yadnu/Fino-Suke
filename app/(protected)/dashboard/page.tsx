@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getMonthKey, formatDate } from "@/lib/utils";
 import { MonthlySnapshot } from "@/components/dashboard/MonthlySnapshot";

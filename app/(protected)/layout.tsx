@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
+import { PushRegistrar } from "@/components/layout/PushRegistrar";
 
 export default async function ProtectedLayout({
   children,
@@ -10,5 +11,10 @@ export default async function ProtectedLayout({
   const { userId } = await auth();
   if (!userId) redirect("/auth/login");
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <>
+      <PushRegistrar />
+      <AppShell>{children}</AppShell>
+    </>
+  );
 }

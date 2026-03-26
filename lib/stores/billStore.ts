@@ -2,6 +2,13 @@
 
 import { create } from "zustand";
 
+function sortBillsByDue<T extends { nextDueDate: string }>(bills: T[]): T[] {
+  return [...bills].sort(
+    (a, b) =>
+      new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime()
+  );
+}
+
 export type Bill = {
   id: string;
   name: string;
@@ -31,16 +38,18 @@ export const useBillStore = create<BillState>((set) => ({
   bills: [],
   isLoading: false,
 
-  setBills: (bills) => set({ bills }),
+  setBills: (bills) => set({ bills: sortBillsByDue(bills) }),
 
   addBill: (bill) =>
     set((state) => ({
-      bills: [bill, ...state.bills],
+      bills: sortBillsByDue([bill, ...state.bills]),
     })),
 
   updateBill: (id, updates) =>
     set((state) => ({
-      bills: state.bills.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+      bills: sortBillsByDue(
+        state.bills.map((b) => (b.id === id ? { ...b, ...updates } : b))
+      ),
     })),
 
   removeBill: (id) =>
