@@ -93,6 +93,22 @@ export const depositSchema = z.object({
 
 export type DepositInput = z.infer<typeof depositSchema>;
 
+// ── Bill ─────────────────────────────────────────────────────────────
+export const billSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name too long"),
+  amount: z.coerce
+    .number()
+    .positive("Amount must be positive")
+    .max(1_000_000, "Amount seems too large"),
+  frequency: z.enum(["monthly", "weekly", "yearly", "once"]).default("monthly"),
+  dueDay: z.coerce.number().int().min(1, "Due day must be at least 1").max(31, "Due day must be 31 or less"),
+  categoryId: z.string().optional().nullable(),
+  notes: z.string().max(500, "Notes too long").optional().nullable(),
+  isActive: z.boolean().default(true),
+});
+
+export type BillInput = z.infer<typeof billSchema>;
+
 // ── Query params ─────────────────────────────────────────────────────
 export const transactionQuerySchema = z.object({
   type: z.enum(["expense", "income"]).optional(),
