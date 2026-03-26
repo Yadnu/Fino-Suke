@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { budgetSchema } from "@/lib/validations";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function PATCH(
   req: Request,
@@ -9,6 +10,12 @@ export async function PATCH(
 ) {
   try {
     const { userId } = await getAuthenticatedUser();
+
+    const { allowed } = await rateLimit(userId, 60, 60);
+    if (!allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const existing = await prisma.budget.findFirst({
       where: { id: params.id, userId },
     });
@@ -63,6 +70,12 @@ export async function DELETE(
 ) {
   try {
     const { userId } = await getAuthenticatedUser();
+
+    const { allowed } = await rateLimit(userId, 60, 60);
+    if (!allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const existing = await prisma.budget.findFirst({
       where: { id: params.id, userId },
     });

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { categorySchema } from "@/lib/validations";
+import { savingsGoalSchema } from "@/lib/validations";
 import { rateLimit } from "@/lib/rateLimit";
 
 export async function GET() {
@@ -13,21 +13,18 @@ export async function GET() {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    const categories = await prisma.category.findMany({
+    const goals = await prisma.savingsGoal.findMany({
       where: { userId },
-      orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+      orderBy: [{ isCompleted: "asc" }, { createdAt: "desc" }],
     });
 
-    return NextResponse.json({ categories });
+    return NextResponse.json({ goals });
   } catch (err) {
     if (err instanceof Error && err.message === "Unauthenticated") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("[categories GET]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("[savings GET]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -41,7 +38,12 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const parsed = categorySchema.safeParse(body);
+
+    const parsed = savingsGoalSchema.safeParse({
+      ...body,
+      targetAmount: Number(body.targetAmount),
+      currentAmount: body.currentAmount !== undefined ? Number(body.currentAmount) : 0,
+    });
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -50,25 +52,26 @@ export async function POST(req: Request) {
       );
     }
 
-    const category = await prisma.category.create({
-      data: { userId, ...parsed.data },
+    const goal = await prisma.savingsGoal.create({
+      data: {
+        userId,
+        name: parsed.data.name,
+        description: parsed.data.description ?? null,
+        targetAmount: parsed.data.targetAmount,
+        currentAmount: parsed.data.currentAmount,
+        targetDate: parsed.data.targetDate ? new Date(parsed.data.targetDate) : null,
+        icon: parsed.data.icon,
+        color: parsed.data.color,
+        isCompleted: parsed.data.isCompleted,
+      },
     });
 
-    return NextResponse.json(category, { status: 201 });
+    return NextResponse.json(goal, { status: 201 });
   } catch (err) {
     if (err instanceof Error && err.message === "Unauthenticated") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("[categories POST]", err);
-    if ((err as { code?: string }).code === "P2002") {
-      return NextResponse.json(
-        { error: "A category with this name already exists" },
-        { status: 409 }
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("[savings POST]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

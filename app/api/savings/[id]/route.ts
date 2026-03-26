@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { transactionSchema } from "@/lib/validations";
-import { redis } from "@/lib/redis";
+import { savingsGoalSchema } from "@/lib/validations";
 import { rateLimit } from "@/lib/rateLimit";
 
 async function getOwned(id: string, userId: string) {
-  return prisma.transaction.findFirst({ where: { id, userId } });
+  return prisma.savingsGoal.findFirst({ where: { id, userId } });
 }
 
 export async function PATCH(
@@ -26,9 +25,12 @@ export async function PATCH(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const body = await req.json();
-    const parsed = transactionSchema.partial().safeParse({
+    const parsed = savingsGoalSchema.partial().safeParse({
       ...body,
-      amount: body.amount !== undefined ? Number(body.amount) : undefined,
+      targetAmount:
+        body.targetAmount !== undefined ? Number(body.targetAmount) : undefined,
+      currentAmount:
+        body.currentAmount !== undefined ? Number(body.currentAmount) : undefined,
     });
 
     if (!parsed.success) {
@@ -38,43 +40,39 @@ export async function PATCH(
       );
     }
 
-    const updated = await prisma.transaction.update({
+    const updated = await prisma.savingsGoal.update({
       where: { id: params.id },
       data: {
-        ...(parsed.data.amount !== undefined && { amount: parsed.data.amount }),
-        ...(parsed.data.type && { type: parsed.data.type }),
-        ...(parsed.data.categoryId !== undefined && {
-          categoryId: parsed.data.categoryId,
+        ...(parsed.data.name !== undefined && { name: parsed.data.name }),
+        ...(parsed.data.description !== undefined && {
+          description: parsed.data.description,
         }),
-        ...(parsed.data.date && { date: new Date(parsed.data.date) }),
-        ...(parsed.data.notes !== undefined && { notes: parsed.data.notes }),
-        ...(parsed.data.tags && { tags: parsed.data.tags }),
-        ...(parsed.data.isRecurring !== undefined && {
-          isRecurring: parsed.data.isRecurring,
+        ...(parsed.data.targetAmount !== undefined && {
+          targetAmount: parsed.data.targetAmount,
+        }),
+        ...(parsed.data.currentAmount !== undefined && {
+          currentAmount: parsed.data.currentAmount,
+        }),
+        ...(parsed.data.targetDate !== undefined && {
+          targetDate: parsed.data.targetDate
+            ? new Date(parsed.data.targetDate)
+            : null,
+        }),
+        ...(parsed.data.icon !== undefined && { icon: parsed.data.icon }),
+        ...(parsed.data.color !== undefined && { color: parsed.data.color }),
+        ...(parsed.data.isCompleted !== undefined && {
+          isCompleted: parsed.data.isCompleted,
         }),
       },
-      include: { category: true },
     });
-
-    const monthKey = (parsed.data.date ? new Date(parsed.data.date) : updated.date)
-      .toISOString()
-      .slice(0, 7);
-    try {
-      await redis.del(`analytics:${userId}:${monthKey}`);
-    } catch {
-      // silent fail
-    }
 
     return NextResponse.json(updated);
   } catch (err) {
     if (err instanceof Error && err.message === "Unauthenticated") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("[transactions PATCH]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("[savings PATCH]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -94,24 +92,13 @@ export async function DELETE(
     if (!existing)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const monthKey = existing.date.toISOString().slice(0, 7);
-    await prisma.transaction.delete({ where: { id: params.id } });
-
-    try {
-      await redis.del(`analytics:${userId}:${monthKey}`);
-    } catch {
-      // silent fail
-    }
-
+    await prisma.savingsGoal.delete({ where: { id: params.id } });
     return NextResponse.json({ success: true });
   } catch (err) {
     if (err instanceof Error && err.message === "Unauthenticated") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.error("[transactions DELETE]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("[savings DELETE]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

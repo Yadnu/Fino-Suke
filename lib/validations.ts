@@ -64,6 +64,35 @@ export const categorySchema = z.object({
 
 export type CategoryInput = z.infer<typeof categorySchema>;
 
+// ── SavingsGoal ──────────────────────────────────────────────────────
+export const savingsGoalSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name too long"),
+  description: z.string().max(500, "Description too long").optional().nullable(),
+  targetAmount: z.coerce
+    .number()
+    .positive("Target amount must be positive")
+    .max(100_000_000, "Amount seems too large"),
+  currentAmount: z.coerce.number().min(0).default(0),
+  targetDate: z.string().optional().nullable(),
+  icon: z.string().default("🎯"),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color")
+    .default("#f5c842"),
+  isCompleted: z.boolean().default(false),
+});
+
+export type SavingsGoalInput = z.infer<typeof savingsGoalSchema>;
+
+export const depositSchema = z.object({
+  amount: z.coerce
+    .number()
+    .positive("Deposit amount must be positive")
+    .max(100_000_000, "Amount seems too large"),
+});
+
+export type DepositInput = z.infer<typeof depositSchema>;
+
 // ── Query params ─────────────────────────────────────────────────────
 export const transactionQuerySchema = z.object({
   type: z.enum(["expense", "income"]).optional(),

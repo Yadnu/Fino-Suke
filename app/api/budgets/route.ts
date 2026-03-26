@@ -3,10 +3,17 @@ import prisma from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { budgetSchema } from "@/lib/validations";
 import { getMonthKey } from "@/lib/utils";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function GET(req: Request) {
   try {
     const { userId } = await getAuthenticatedUser();
+
+    const { allowed } = await rateLimit(userId, 60, 60);
+    if (!allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const { searchParams } = new URL(req.url);
     const month = searchParams.get("month") ?? getMonthKey();
 
@@ -53,6 +60,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const { userId } = await getAuthenticatedUser();
+
+    const { allowed } = await rateLimit(userId, 60, 60);
+    if (!allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const body = await req.json();
 
     const parsed = budgetSchema.safeParse({

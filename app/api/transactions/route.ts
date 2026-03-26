@@ -2,10 +2,18 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { transactionSchema, transactionQuerySchema } from "@/lib/validations";
+import { redis } from "@/lib/redis";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function GET(req: Request) {
   try {
     const { userId } = await getAuthenticatedUser();
+
+    const { allowed } = await rateLimit(userId, 60, 60);
+    if (!allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const { searchParams } = new URL(req.url);
 
     const query = transactionQuerySchema.safeParse({
@@ -73,6 +81,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const { userId } = await getAuthenticatedUser();
+
+    const { allowed } = await rateLimit(userId, 60, 60);
+    if (!allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const body = await req.json();
 
     const parsed = transactionSchema.safeParse({
@@ -100,6 +114,13 @@ export async function POST(req: Request) {
       },
       include: { category: true },
     });
+
+    const monthKey = transaction.date.toISOString().slice(0, 7);
+    try {
+      await redis.del(`analytics:${userId}:${monthKey}`);
+    } catch {
+      // silent fail
+    }
 
     return NextResponse.json(transaction, { status: 201 });
   } catch (err) {
