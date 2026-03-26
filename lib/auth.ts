@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/db";
 import { DEFAULT_CATEGORIES } from "@/lib/utils";
+import { redis } from "@/lib/redis";
 
 /**
  * Get the current Clerk userId from the request context.
@@ -19,10 +20,26 @@ export async function requireAuth(): Promise<string> {
  * Called on first authenticated API request so we never need webhooks.
  */
 export async function getOrCreateUser(clerkUserId: string) {
+  const cacheKey = `user:${clerkUserId}`;
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return cached as Awaited<ReturnType<typeof prisma.user.findUnique>>;
+  } catch {
+    // fall through to DB
+  }
+
   const existing = await prisma.user.findUnique({
     where: { id: clerkUserId },
   });
-  if (existing) return existing;
+  if (existing) {
+    try {
+      await redis.set(cacheKey, existing, { ex: 60 });
+    } catch {
+      // silent fail
+    }
+    return existing;
+  }
 
   // Fetch full profile from Clerk to seed the DB record
   const clerkUser = await currentUser();
@@ -49,6 +66,12 @@ export async function getOrCreateUser(clerkUserId: string) {
       },
     },
   });
+
+  try {
+    await redis.set(cacheKey, user, { ex: 60 });
+  } catch {
+    // silent fail
+  }
 
   return user;
 }
