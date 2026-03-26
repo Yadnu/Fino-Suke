@@ -1,0 +1,18 @@
+feat: migrate authentication from NextAuth to Clerk
+
+- Replace NextAuth.js + bcryptjs with @clerk/nextjs for authentication
+- Add ClerkProvider to root layout; remove SessionProvider
+- Replace custom login/signup forms with Clerk SignIn/SignUp components
+  styled to match the Finosuke design system (gold/teal dark theme)
+- Move auth pages to optional catch-all routes ([[...sign-in]], [[...sign-up]])
+  so Clerk's internal sub-routes (sso-callback, capability checks) resolve correctly
+- Update middleware.ts to use clerkMiddleware and createRouteMatcher
+- Rewrite lib/auth.ts: requireAuth(), getOrCreateUser(), getAuthenticatedUser()
+  using Clerk's auth() and currentUser() server helpers
+- Update all API routes to use getAuthenticatedUser() instead of getServerSession()
+- Update protected layout, dashboard, Header, and Sidebar to use Clerk hooks
+- Remove password field from Prisma User model; use Clerk userId as PK
+- Sync database schema with prisma db push (drops stale password NOT NULL column)
+- Delete NextAuth API routes, signup route, and next-auth type declarations
+- Fix Zod v4 .issues[0].message usage in API error responses
+- Move themeColor from metadata to viewport export in root layout

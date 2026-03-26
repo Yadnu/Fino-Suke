@@ -1,11 +1,12 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { getMonthKey, formatDate } from "@/lib/utils";
 import { MonthlySnapshot } from "@/components/dashboard/MonthlySnapshot";
 import { BudgetStatusGrid } from "@/components/dashboard/BudgetStatusGrid";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { UpcomingBillsTeaser } from "@/components/dashboard/UpcomingBillsTeaser";
 import { AiTipPlaceholder } from "@/components/dashboard/AiTipPlaceholder";
+import { getOrCreateUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 
 async function getDashboardData(userId: string) {
@@ -25,19 +26,35 @@ async function getDashboardData(userId: string) {
     budgets,
   ] = await Promise.all([
     prisma.transaction.aggregate({
-      where: { userId, type: "income", date: { gte: currentStart, lte: currentEnd } },
+      where: {
+        userId,
+        type: "income",
+        date: { gte: currentStart, lte: currentEnd },
+      },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({
-      where: { userId, type: "expense", date: { gte: currentStart, lte: currentEnd } },
+      where: {
+        userId,
+        type: "expense",
+        date: { gte: currentStart, lte: currentEnd },
+      },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({
-      where: { userId, type: "income", date: { gte: prevStart, lte: prevEnd } },
+      where: {
+        userId,
+        type: "income",
+        date: { gte: prevStart, lte: prevEnd },
+      },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({
-      where: { userId, type: "expense", date: { gte: prevStart, lte: prevEnd } },
+      where: {
+        userId,
+        type: "expense",
+        date: { gte: prevStart, lte: prevEnd },
+      },
       _sum: { amount: true },
     }),
     prisma.transaction.findMany({
@@ -58,7 +75,6 @@ async function getDashboardData(userId: string) {
   const prevTotalIncome = prevIncomeAgg._sum.amount ?? 0;
   const prevTotalExpenses = prevExpensesAgg._sum.amount ?? 0;
 
-  // Compute spent per budget category
   const categoryIds = budgets
     .map((b) => b.categoryId)
     .filter(Boolean) as string[];
@@ -81,11 +97,6 @@ async function getDashboardData(userId: string) {
     spentByCategory.map((r) => [r.categoryId, r._sum.amount ?? 0])
   );
 
-  const budgetsWithSpent = budgets.map((b) => ({
-    ...b,
-    spent: b.categoryId ? (spentMap[b.categoryId] ?? 0) : 0,
-  }));
-
   return {
     totalIncome,
     totalExpenses,
@@ -103,15 +114,19 @@ async function getDashboardData(userId: string) {
         ? ((totalExpenses - prevTotalExpenses) / prevTotalExpenses) * 100
         : 0,
     recentTransactions,
-    budgets: budgetsWithSpent,
+    budgets: budgets.map((b) => ({
+      ...b,
+      spent: b.categoryId ? (spentMap[b.categoryId] ?? 0) : 0,
+    })),
   };
 }
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
-  const userId = (session!.user as { id: string }).id;
-  const currency = (session!.user as { currency?: string }).currency ?? "USD";
+  const { userId } = await auth();
+  if (!userId) redirect("/auth/login");
 
+  // Ensure user record exists in DB
+  const user = await getOrCreateUser(userId);
   const data = await getDashboardData(userId);
 
   const serialized = {
@@ -131,7 +146,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      {/* Page header */}
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">
           Dashboard
@@ -141,7 +155,6 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Monthly Snapshot — full width */}
       <MonthlySnapshot
         totalIncome={serialized.totalIncome}
         totalExpenses={serialized.totalExpenses}
@@ -149,17 +162,16 @@ export default async function DashboardPage() {
         savingsRate={serialized.savingsRate}
         incomeTrend={serialized.incomeTrend}
         expensesTrend={serialized.expensesTrend}
-        currency={currency}
+        currency={user.currency}
       />
 
-      {/* Budget + Savings row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <BudgetStatusGrid
-          budgets={serialized.budgets as Parameters<typeof BudgetStatusGrid>[0]["budgets"]}
-          currency={currency}
+          budgets={
+            serialized.budgets as Parameters<typeof BudgetStatusGrid>[0]["budgets"]
+          }
+          currency={user.currency}
         />
-
-        {/* Savings goals teaser */}
         <div className="bg-surface border border-border rounded-lg p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-display text-base font-semibold text-foreground">
@@ -179,13 +191,15 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent transactions — full width */}
       <RecentTransactions
-        transactions={serialized.recentTransactions as Parameters<typeof RecentTransactions>[0]["transactions"]}
-        currency={currency}
+        transactions={
+          serialized.recentTransactions as Parameters<
+            typeof RecentTransactions
+          >[0]["transactions"]
+        }
+        currency={user.currency}
       />
 
-      {/* Bills + AI tip */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <UpcomingBillsTeaser />
         <AiTipPlaceholder />

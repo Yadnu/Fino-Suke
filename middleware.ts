@@ -1,16 +1,20 @@
-export { default } from "next-auth/middleware";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+
+const isPublicRoute = createRouteMatcher([
+  "/auth/login(.*)",
+  "/auth/signup(.*)",
+  "/api/webhooks(.*)",
+]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) {
+    await auth.protect();
+  }
+});
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/expenses/:path*",
-    "/budget/:path*",
-    "/income/:path*",
-    "/savings/:path*",
-    "/bills/:path*",
-    "/analytics/:path*",
-    "/networth/:path*",
-    "/ai-assistant/:path*",
-    "/settings/:path*",
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
   ],
 };

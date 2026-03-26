@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { transactionSchema, transactionQuerySchema } from "@/lib/validations";
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const userId = (session.user as { id: string }).id;
+    const { userId } = await getAuthenticatedUser();
     const { searchParams } = new URL(req.url);
 
     const query = transactionQuerySchema.safeParse({
@@ -46,7 +41,9 @@ export async function GET(req: Request) {
             },
           }
         : {}),
-      ...(search && { notes: { contains: search, mode: "insensitive" as const } }),
+      ...(search && {
+        notes: { contains: search, mode: "insensitive" as const },
+      }),
     };
 
     const [transactions, total] = await Promise.all([
@@ -62,18 +59,20 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ transactions, total, page, limit });
   } catch (err) {
+    if (err instanceof Error && err.message === "Unauthenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[transactions GET]", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const userId = (session.user as { id: string }).id;
+    const { userId } = await getAuthenticatedUser();
     const body = await req.json();
 
     const parsed = transactionSchema.safeParse({
@@ -104,7 +103,13 @@ export async function POST(req: Request) {
 
     return NextResponse.json(transaction, { status: 201 });
   } catch (err) {
+    if (err instanceof Error && err.message === "Unauthenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[transactions POST]", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

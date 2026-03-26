@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { transactionSchema } from "@/lib/validations";
 
 async function getOwned(id: string, userId: string) {
@@ -13,11 +12,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const userId = (session.user as { id: string }).id;
+    const { userId } = await getAuthenticatedUser();
     const existing = await getOwned(params.id, userId);
     if (!existing)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -55,8 +50,14 @@ export async function PATCH(
 
     return NextResponse.json(updated);
   } catch (err) {
+    if (err instanceof Error && err.message === "Unauthenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[transactions PATCH]", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -65,11 +66,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const userId = (session.user as { id: string }).id;
+    const { userId } = await getAuthenticatedUser();
     const existing = await getOwned(params.id, userId);
     if (!existing)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -77,7 +74,13 @@ export async function DELETE(
     await prisma.transaction.delete({ where: { id: params.id } });
     return NextResponse.json({ success: true });
   } catch (err) {
+    if (err instanceof Error && err.message === "Unauthenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[transactions DELETE]", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

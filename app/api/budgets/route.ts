@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { budgetSchema } from "@/lib/validations";
 import { getMonthKey } from "@/lib/utils";
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const userId = (session.user as { id: string }).id;
+    const { userId } = await getAuthenticatedUser();
     const { searchParams } = new URL(req.url);
     const month = searchParams.get("month") ?? getMonthKey();
 
@@ -21,7 +16,6 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "asc" },
     });
 
-    // Calculate spent amount per budget
     const [startDate, endDate] = getMonthDateRange(month);
     const spentByCategory = await prisma.transaction.groupBy({
       by: ["categoryId"],
@@ -45,18 +39,20 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ budgets: budgetsWithSpent, month });
   } catch (err) {
+    if (err instanceof Error && err.message === "Unauthenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[budgets GET]", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const userId = (session.user as { id: string }).id;
+    const { userId } = await getAuthenticatedUser();
     const body = await req.json();
 
     const parsed = budgetSchema.safeParse({
@@ -87,6 +83,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json(budget, { status: 201 });
   } catch (err) {
+    if (err instanceof Error && err.message === "Unauthenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[budgets POST]", err);
     if ((err as { code?: string }).code === "P2002") {
       return NextResponse.json(
@@ -94,7 +93,10 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 

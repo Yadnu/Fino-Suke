@@ -1,58 +1,64 @@
-import type { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/db";
-import { loginSchema } from "@/lib/validations";
+import { DEFAULT_CATEGORIES } from "@/lib/utils";
 
-export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
-  pages: {
-    signIn: "/auth/login",
-    error: "/auth/login",
-  },
-  providers: [
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+/**
+ * Get the current Clerk userId from the request context.
+ * Throws if unauthenticated (use inside protected routes only).
+ */
+export async function requireAuth(): Promise<string> {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("Unauthenticated");
+  }
+  return userId;
+}
+
+/**
+ * Get-or-create the Finosuke user record in Postgres.
+ * Called on first authenticated API request so we never need webhooks.
+ */
+export async function getOrCreateUser(clerkUserId: string) {
+  const existing = await prisma.user.findUnique({
+    where: { id: clerkUserId },
+  });
+  if (existing) return existing;
+
+  // Fetch full profile from Clerk to seed the DB record
+  const clerkUser = await currentUser();
+  const email =
+    clerkUser?.emailAddresses?.[0]?.emailAddress ??
+    `${clerkUserId}@finosuke.app`;
+  const name =
+    clerkUser?.fullName ??
+    clerkUser?.firstName ??
+    null;
+
+  const user = await prisma.user.create({
+    data: {
+      id: clerkUserId,
+      email,
+      name,
+      categories: {
+        create: Object.values(DEFAULT_CATEGORIES).map((meta) => ({
+          name: meta.label,
+          icon: meta.icon,
+          color: meta.color,
+          isDefault: true,
+        })),
       },
-      async authorize(credentials) {
-        const parsed = loginSchema.safeParse(credentials);
-        if (!parsed.success) return null;
-
-        const { email, password } = parsed.data;
-
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) return null;
-
-        const isValid = await bcrypt.compare(password, user.password);
-        if (!isValid) return null;
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name ?? undefined,
-          currency: user.currency,
-        };
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.currency = (user as { currency?: string }).currency ?? "USD";
-      }
-      return token;
     },
-    async session({ session, token }) {
-      if (token && session.user) {
-        (session.user as { id?: string }).id = token.id as string;
-        (session.user as { currency?: string }).currency =
-          (token.currency as string) ?? "USD";
-      }
-      return session;
-    },
-  },
-};
+  });
+
+  return user;
+}
+
+/**
+ * Get Clerk userId + ensure local DB user exists.
+ * One-stop helper for API routes.
+ */
+export async function getAuthenticatedUser() {
+  const userId = await requireAuth();
+  const user = await getOrCreateUser(userId);
+  return { userId, user };
+}
