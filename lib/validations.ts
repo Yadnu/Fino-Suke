@@ -1,0 +1,78 @@
+import { z } from "zod";
+
+// ── Auth ─────────────────────────────────────────────────────────────
+export const signupSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export type SignupInput = z.infer<typeof signupSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+
+// ── Transaction ──────────────────────────────────────────────────────
+export const transactionSchema = z.object({
+  amount: z.coerce
+    .number()
+    .positive("Amount must be positive")
+    .max(1_000_000, "Amount seems too large"),
+  type: z.enum(["expense", "income"]),
+  categoryId: z.string().optional().nullable(),
+  date: z.string().min(1, "Date is required"),
+  notes: z.string().max(500, "Notes too long").optional().nullable(),
+  tags: z.array(z.string()).default([]),
+  isRecurring: z.boolean().default(false),
+});
+
+export type TransactionInput = z.infer<typeof transactionSchema>;
+
+// ── Budget ───────────────────────────────────────────────────────────
+export const budgetSchema = z.object({
+  name: z.string().min(1, "Name is required").max(50, "Name too long"),
+  categoryId: z.string().optional().nullable(),
+  amount: z.coerce
+    .number()
+    .positive("Amount must be positive")
+    .max(1_000_000, "Amount seems too large"),
+  period: z.enum(["weekly", "monthly"]).default("monthly"),
+  month: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, "Month must be in YYYY-MM format"),
+  rollover: z.boolean().default(false),
+});
+
+export type BudgetInput = z.infer<typeof budgetSchema>;
+
+// ── Category ─────────────────────────────────────────────────────────
+export const categorySchema = z.object({
+  name: z.string().min(1, "Name is required").max(30, "Name too long"),
+  icon: z.string().default("circle"),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color")
+    .default("#71717a"),
+});
+
+export type CategoryInput = z.infer<typeof categorySchema>;
+
+// ── Query params ─────────────────────────────────────────────────────
+export const transactionQuerySchema = z.object({
+  type: z.enum(["expense", "income"]).optional(),
+  categoryId: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  search: z.string().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export type TransactionQuery = z.infer<typeof transactionQuerySchema>;

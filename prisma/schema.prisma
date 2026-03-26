@@ -1,0 +1,83 @@
+// Finosuke — Prisma Schema (Phase 1 MVP)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  password     String
+  currency     String        @default("USD")
+  locale       String        @default("en-US")
+  timezone     String        @default("UTC")
+  avatar       String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+  budgets      Budget[]
+  categories   Category[]
+
+  @@map("users")
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  userId       String
+  name         String
+  icon         String        @default("circle")
+  color        String        @default("#71717a")
+  isDefault    Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@unique([userId, name])
+  @@map("categories")
+}
+
+model Transaction {
+  id          String    @id @default(cuid())
+  userId      String
+  amount      Float
+  type        String    @default("expense") // "expense" | "income"
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  date        DateTime
+  notes       String?
+  tags        String[]  @default([])
+  isRecurring Boolean   @default(false)
+  recurringId String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([userId, type])
+  @@map("transactions")
+}
+
+model Budget {
+  id         String    @id @default(cuid())
+  userId     String
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  name       String
+  amount     Float
+  period     String    @default("monthly") // "weekly" | "monthly"
+  month      String // "2024-01" format
+  rollover   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId, month])
+  @@index([userId, month])
+  @@map("budgets")
+}
