@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { categorySchema } from "@/lib/validations";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const userId = (session.user as { id: string }).id;
+    const { userId } = await getAuthenticatedUser();
 
     const categories = await prisma.category.findMany({
       where: { userId },
@@ -19,18 +14,20 @@ export async function GET() {
 
     return NextResponse.json({ categories });
   } catch (err) {
+    if (err instanceof Error && err.message === "Unauthenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[categories GET]", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const userId = (session.user as { id: string }).id;
+    const { userId } = await getAuthenticatedUser();
     const body = await req.json();
     const parsed = categorySchema.safeParse(body);
 
@@ -47,6 +44,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json(category, { status: 201 });
   } catch (err) {
+    if (err instanceof Error && err.message === "Unauthenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[categories POST]", err);
     if ((err as { code?: string }).code === "P2002") {
       return NextResponse.json(
@@ -54,6 +54,9 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

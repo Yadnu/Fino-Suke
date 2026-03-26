@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { useClerk } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   Receipt,
@@ -32,6 +32,7 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { signOut } = useClerk();
 
   return (
     <aside className="fixed left-0 top-0 h-full w-[220px] bg-surface border-r border-border flex flex-col z-40">
@@ -51,7 +52,8 @@ export function Sidebar() {
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
         <div className="space-y-0.5">
           {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-            const isActive = pathname === href || pathname.startsWith(href + "/");
+            const isActive =
+              pathname === href || pathname.startsWith(href + "/");
             return (
               <Link
                 key={href}
@@ -96,7 +98,7 @@ export function Sidebar() {
           Settings
         </Link>
         <button
-          onClick={() => signOut({ callbackUrl: "/auth/login" })}
+          onClick={() => signOut({ redirectUrl: "/auth/login" })}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted hover:text-danger hover:bg-danger/10 transition-all"
         >
           <LogOut className="w-4 h-4 shrink-0" />

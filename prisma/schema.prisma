@@ -1,4 +1,4 @@
-// Finosuke — Prisma Schema (Phase 1 MVP)
+// Finosuke — Prisma Schema (Phase 1 MVP — Clerk Auth)
 
 generator client {
   provider = "prisma-client-js"
@@ -8,11 +8,11 @@ datasource db {
   provider = "postgresql"
 }
 
+// User profile & preferences — linked to Clerk by id (Clerk userId is the PK)
 model User {
-  id           String        @id @default(cuid())
+  id           String        @id  // Clerk userId (e.g. "user_2abc123...")
   email        String        @unique
   name         String?
-  password     String
   currency     String        @default("USD")
   locale       String        @default("en-US")
   timezone     String        @default("UTC")

@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Sora, DM_Sans } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
-import { SessionProvider } from "@/components/layout/SessionProvider";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -22,6 +22,9 @@ export const metadata: Metadata = {
   title: "Finosuke — Personal Finance",
   description:
     "A modern, intelligent personal finance app built with precision and clarity.",
+};
+
+export const viewport: Viewport = {
   themeColor: "#0f0f11",
 };
 
@@ -31,9 +34,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${sora.variable} ${dmSans.variable} font-body`}>
-        <SessionProvider>
+    <ClerkProvider>
+      <html lang="en" className="dark">
+        <body className={`${sora.variable} ${dmSans.variable} font-body`}>
           {children}
           <Toaster
             position="bottom-right"
@@ -53,8 +56,8 @@ export default function RootLayout({
               },
             }}
           />
-        </SessionProvider>
-      </body>
-    </html>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
