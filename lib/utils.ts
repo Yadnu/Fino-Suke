@@ -50,6 +50,15 @@ export function formatRelativeTime(date: Date | string): string {
   return formatDistanceToNow(new Date(date), { addSuffix: true });
 }
 
+/** Calendar-day difference: negative = overdue, 0 = due today. */
+export function billDaysUntilDue(nextDueDate: Date | string): number {
+  const due = new Date(nextDueDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  due.setHours(0, 0, 0, 0);
+  return Math.round((due.getTime() - today.getTime()) / 86400000);
+}
+
 export function getMonthKey(date = new Date()): string {
   return format(date, "yyyy-MM");
 }

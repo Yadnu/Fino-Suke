@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
 import { Loader2, TrendingUp } from "lucide-react";
@@ -25,7 +25,7 @@ export function DepositSheet({ goal, open, onOpenChange }: DepositSheetProps) {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<DepositInput>({
-    resolver: zodResolver(depositSchema),
+    resolver: zodResolver(depositSchema) as Resolver<DepositInput>,
     defaultValues: { amount: undefined },
   });
 

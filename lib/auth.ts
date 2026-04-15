@@ -1,4 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import type { User } from "@prisma/client";
 import prisma from "@/lib/db";
 import { DEFAULT_CATEGORIES } from "@/lib/utils";
 import { redis } from "@/lib/redis";
@@ -19,12 +20,12 @@ export async function requireAuth(): Promise<string> {
  * Get-or-create the Finosuke user record in Postgres.
  * Called on first authenticated API request so we never need webhooks.
  */
-export async function getOrCreateUser(clerkUserId: string) {
+export async function getOrCreateUser(clerkUserId: string): Promise<User> {
   const cacheKey = `user:${clerkUserId}`;
 
   try {
     const cached = await redis.get(cacheKey);
-    if (cached) return cached as Awaited<ReturnType<typeof prisma.user.findUnique>>;
+    if (cached) return cached as User;
   } catch {
     // fall through to DB
   }
@@ -51,29 +52,38 @@ export async function getOrCreateUser(clerkUserId: string) {
     clerkUser?.firstName ??
     null;
 
-  const user = await prisma.user.create({
-    data: {
-      id: clerkUserId,
-      email,
-      name,
-      categories: {
-        create: Object.values(DEFAULT_CATEGORIES).map((meta) => ({
-          name: meta.label,
-          icon: meta.icon,
-          color: meta.color,
-          isDefault: true,
-        })),
-      },
-    },
-  });
-
   try {
-    await redis.set(cacheKey, user, { ex: 60 });
-  } catch {
-    // silent fail
-  }
+    const user = await prisma.user.create({
+      data: {
+        id: clerkUserId,
+        email,
+        name,
+        categories: {
+          create: Object.values(DEFAULT_CATEGORIES).map((meta) => ({
+            name: meta.label,
+            icon: meta.icon,
+            color: meta.color,
+            isDefault: true,
+          })),
+        },
+      },
+    });
 
-  return user;
+    try {
+      await redis.set(cacheKey, user, { ex: 60 });
+    } catch {
+      // silent fail
+    }
+
+    return user;
+  } catch (createErr: unknown) {
+    // P2002 = unique constraint — another concurrent request already created this user (race condition)
+    if ((createErr as { code?: string })?.code === 'P2002') {
+      const race = await prisma.user.findUnique({ where: { id: clerkUserId } });
+      if (race) return race;
+    }
+    throw createErr;
+  }
 }
 
 /**

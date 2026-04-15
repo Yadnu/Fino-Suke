@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
@@ -39,7 +39,7 @@ export function SavingsGoalForm({ editingGoal, onSuccess }: SavingsGoalFormProps
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<SavingsGoalInput>({
-    resolver: zodResolver(savingsGoalSchema),
+    resolver: zodResolver(savingsGoalSchema) as Resolver<SavingsGoalInput>,
     defaultValues: editingGoal
       ? {
           name: editingGoal.name,

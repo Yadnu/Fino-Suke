@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getMonthKey, formatDate } from "@/lib/utils";
 import { MonthlySnapshot } from "@/components/dashboard/MonthlySnapshot";
@@ -76,7 +76,7 @@ async function getDashboardData(userId: string) {
   const prevTotalExpenses = prevExpensesAgg._sum.amount ?? 0;
 
   const categoryIds = budgets
-    .map((b) => b.categoryId)
+    .map((b: { categoryId: string | null }) => b.categoryId)
     .filter(Boolean) as string[];
 
   const spentByCategory =
@@ -114,7 +114,7 @@ async function getDashboardData(userId: string) {
         ? ((totalExpenses - prevTotalExpenses) / prevTotalExpenses) * 100
         : 0,
     recentTransactions,
-    budgets: budgets.map((b) => ({
+    budgets: budgets.map((b: Record<string, unknown> & { categoryId: string | null }) => ({
       ...b,
       spent: b.categoryId ? (spentMap[b.categoryId] ?? 0) : 0,
     })),
@@ -137,7 +137,8 @@ export default async function DashboardPage() {
       createdAt: tx.createdAt.toISOString(),
       updatedAt: tx.updatedAt.toISOString(),
     })),
-    budgets: data.budgets.map((b) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    budgets: data.budgets.map((b: any) => ({
       ...b,
       createdAt: b.createdAt.toISOString(),
       updatedAt: b.updatedAt.toISOString(),
