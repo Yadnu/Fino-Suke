@@ -1,5 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
-import type { User } from "@prisma/client";
+import { Prisma, type User } from "@prisma/client";
 import prisma from "@/lib/db";
 import { DEFAULT_CATEGORIES } from "@/lib/utils";
 import { redis } from "@/lib/redis";
@@ -77,10 +77,17 @@ export async function getOrCreateUser(clerkUserId: string): Promise<User> {
 
     return user;
   } catch (createErr: unknown) {
-    // P2002 = unique constraint — another concurrent request already created this user (race condition)
-    if ((createErr as { code?: string })?.code === 'P2002') {
-      const race = await prisma.user.findUnique({ where: { id: clerkUserId } });
-      if (race) return race;
+    if (
+      createErr instanceof Prisma.PrismaClientKnownRequestError &&
+      createErr.code === 'P2002'
+    ) {
+      // H-A: race condition — another concurrent request created the user first
+      const byId = await prisma.user.findUnique({ where: { id: clerkUserId } });
+      if (byId) return byId;
+
+      // H-B: stale DB row with same email but different Clerk ID (e.g. re-registration)
+      const byEmail = await prisma.user.findUnique({ where: { email } });
+      if (byEmail) return byEmail;
     }
     throw createErr;
   }
