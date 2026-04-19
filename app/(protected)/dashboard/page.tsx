@@ -4,7 +4,11 @@ import { getMonthKey, formatDate } from "@/lib/utils";
 import { MonthlySnapshot } from "@/components/dashboard/MonthlySnapshot";
 import { BudgetStatusGrid } from "@/components/dashboard/BudgetStatusGrid";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
-import { UpcomingBillsTeaser } from "@/components/dashboard/UpcomingBillsTeaser";
+import {
+  UpcomingBillsTeaser,
+  type DashboardBill,
+} from "@/components/dashboard/UpcomingBillsTeaser";
+import { SavingsGoalsTeaser } from "@/components/dashboard/SavingsGoalsTeaser";
 import { AiTipPlaceholder } from "@/components/dashboard/AiTipPlaceholder";
 import { getOrCreateUser } from "@/lib/auth";
 import prisma from "@/lib/db";
@@ -24,6 +28,8 @@ async function getDashboardData(userId: string) {
     prevExpensesAgg,
     recentTransactions,
     budgets,
+    upcomingBills,
+    savingsGoalsPreview,
   ] = await Promise.all([
     prisma.transaction.aggregate({
       where: {
@@ -67,6 +73,17 @@ async function getDashboardData(userId: string) {
       where: { userId, month },
       include: { category: true },
       orderBy: { createdAt: "asc" },
+    }),
+    prisma.bill.findMany({
+      where: { userId, isActive: true },
+      include: { category: true },
+      orderBy: { nextDueDate: "asc" },
+      take: 4,
+    }),
+    prisma.savingsGoal.findMany({
+      where: { userId, isCompleted: false },
+      orderBy: { updatedAt: "desc" },
+      take: 3,
     }),
   ]);
 
@@ -118,6 +135,8 @@ async function getDashboardData(userId: string) {
       ...b,
       spent: b.categoryId ? (spentMap[b.categoryId] ?? 0) : 0,
     })),
+    upcomingBills,
+    savingsGoalsPreview,
   };
 }
 
@@ -129,19 +148,50 @@ export default async function DashboardPage() {
   const user = await getOrCreateUser(userId);
   const data = await getDashboardData(userId);
 
+  const {
+    upcomingBills,
+    savingsGoalsPreview,
+    recentTransactions,
+    budgets,
+    ...summary
+  } = data;
+
+  const serializedBills: DashboardBill[] = upcomingBills.map((b) => ({
+    id: b.id,
+    name: b.name,
+    amount: b.amount,
+    nextDueDate: b.nextDueDate.toISOString(),
+    category: b.category
+      ? {
+          name: b.category.name,
+          icon: b.category.icon,
+          color: b.category.color,
+        }
+      : null,
+  }));
+
   const serialized = {
-    ...data,
-    recentTransactions: data.recentTransactions.map((tx) => ({
+    ...summary,
+    recentTransactions: recentTransactions.map((tx) => ({
       ...tx,
       date: tx.date.toISOString(),
       createdAt: tx.createdAt.toISOString(),
       updatedAt: tx.updatedAt.toISOString(),
     })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    budgets: data.budgets.map((b: any) => ({
+    budgets: budgets.map((b: any) => ({
       ...b,
       createdAt: b.createdAt.toISOString(),
       updatedAt: b.updatedAt.toISOString(),
+    })),
+    savingsGoalsPreview: savingsGoalsPreview.map((g) => ({
+      id: g.id,
+      name: g.name,
+      icon: g.icon,
+      color: g.color,
+      targetAmount: g.targetAmount,
+      currentAmount: g.currentAmount,
+      targetDate: g.targetDate ? g.targetDate.toISOString() : null,
     })),
   };
 
@@ -173,23 +223,10 @@ export default async function DashboardPage() {
           }
           currency={user.currency}
         />
-        <div className="bg-surface border border-border rounded-lg p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display text-base font-semibold text-foreground">
-              Savings Goals
-            </h3>
-          </div>
-          <div className="text-center py-6">
-            <div className="text-4xl mb-3">🎯</div>
-            <p className="text-sm text-muted">Savings goals coming in Phase 2</p>
-            <a
-              href="/savings"
-              className="text-xs text-gold hover:text-gold-hover mt-2 inline-block transition-colors"
-            >
-              Plan your first goal →
-            </a>
-          </div>
-        </div>
+        <SavingsGoalsTeaser
+          goals={serialized.savingsGoalsPreview}
+          currency={user.currency}
+        />
       </div>
 
       <RecentTransactions
@@ -202,7 +239,7 @@ export default async function DashboardPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UpcomingBillsTeaser />
+        <UpcomingBillsTeaser bills={serializedBills} currency={user.currency} />
         <AiTipPlaceholder />
       </div>
     </div>

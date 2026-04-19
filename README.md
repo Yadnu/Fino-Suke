@@ -45,22 +45,24 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 /dashboard        Main overview
 /expenses         Expense & income tracking
 /budget           Budget planning
-/income           Income sources (Phase 2)
-/savings          Savings goals (Phase 2)
-/bills            Bill reminders (Phase 2)
-/analytics        Reports & charts (Phase 2)
+/income           Income tracking
+/savings          Savings goals
+/bills            Bill reminders
+/analytics        Reports & charts
 /networth         Net worth tracker (Phase 3)
 /ai-assistant     AI chatbot (Phase 3)
-/settings         Account preferences (Phase 2)
+/settings         Account preferences
 ```
+
+Phase 2 routes above are live. Remaining roadmap items are labeled by phase below.
 
 ## Development Phases
 
 | Phase | Features |
 |-------|----------|
 | Phase 1 | Auth, Expense Tracking, Budget Planning, Dashboard |
-| **Phase 2(Current)* | Income, Bills, Savings Goals, Analytics |
-| Phase 3 | Net Worth, AI Insights, Chatbot, Gamification |
+| Phase 2 | Income, Bills, Savings Goals, Analytics, Settings |
+| **Phase 3 (current)** | Net Worth, AI Insights, Chatbot, Gamification |
 | Phase 4 | Multi-currency, PWA, CSV Import/Export |
 | Phase 5 | Bank Sync (Plaid), Advanced AI |
 

@@ -62,10 +62,15 @@ export function Header({ healthScore = 78 }: HeaderProps) {
           </span>
         </div>
 
-        {/* Notifications */}
-        <button className="relative w-9 h-9 rounded-md border border-border flex items-center justify-center text-muted hover:text-foreground hover:border-border/80 transition-colors">
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-gold rounded-full" />
+        {/* Bill reminders use browser push when enabled; no in-app inbox yet */}
+        <button
+          type="button"
+          className="w-9 h-9 rounded-md border border-border flex items-center justify-center text-muted hover:text-foreground hover:border-border/80 transition-colors"
+          aria-label="Notifications (in-app inbox not available yet)"
+          title="No in-app inbox yet. Bill reminders can use browser notifications when your device supports them."
+          disabled
+        >
+          <Bell className="w-4 h-4 opacity-60" />
         </button>
 
         {/* Clerk UserButton — handles profile, account, sign-out */}
