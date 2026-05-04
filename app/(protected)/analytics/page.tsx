@@ -126,7 +126,9 @@ export default function AnalyticsPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/analytics/summary?month=${month}`);
+      const res = await fetch(`/api/analytics/summary?month=${month}`, {
+        cache: "no-store",
+      });
       const json = await res.json();
       setData(json);
     } finally {

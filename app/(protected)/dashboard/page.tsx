@@ -1,4 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
+import type { User } from "@prisma/client";
+import { unstable_noStore as noStore } from "next/cache";
 import { redirect } from "next/navigation";
 import { getMonthKey, formatDate } from "@/lib/utils";
 import { MonthlySnapshot } from "@/components/dashboard/MonthlySnapshot";
@@ -10,8 +11,10 @@ import {
 } from "@/components/dashboard/UpcomingBillsTeaser";
 import { SavingsGoalsTeaser } from "@/components/dashboard/SavingsGoalsTeaser";
 import { AiTipPlaceholder } from "@/components/dashboard/AiTipPlaceholder";
-import { getOrCreateUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 import prisma from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 async function getDashboardData(userId: string) {
   const month = getMonthKey();
@@ -141,11 +144,21 @@ async function getDashboardData(userId: string) {
 }
 
 export default async function DashboardPage() {
-  const { userId } = await auth();
-  if (!userId) redirect("/auth/login");
+  noStore();
 
-  // Ensure user record exists in DB
-  const user = await getOrCreateUser(userId);
+  let userId: string;
+  let user: User;
+  try {
+    const session = await getAuthenticatedUser();
+    userId = session.userId;
+    user = session.user;
+  } catch (e) {
+    if (e instanceof Error && e.message === "Unauthenticated") {
+      redirect("/auth/login");
+    }
+    throw e;
+  }
+
   const data = await getDashboardData(userId);
 
   const {

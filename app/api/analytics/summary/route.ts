@@ -5,6 +5,8 @@ import { getMonthKey } from "@/lib/utils";
 import { redis } from "@/lib/redis";
 import { rateLimit } from "@/lib/rateLimit";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   try {
     const { userId } = await getAuthenticatedUser();

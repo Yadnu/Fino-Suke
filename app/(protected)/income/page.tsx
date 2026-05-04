@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   Plus,
@@ -79,6 +80,7 @@ function CustomTooltip({
 }
 
 export default function IncomePage() {
+  const router = useRouter();
   const {
     transactions,
     total,
@@ -101,7 +103,9 @@ export default function IncomePage() {
     try {
       const params = new URLSearchParams({ type: "income", limit: "50" });
       if (search) params.set("search", search);
-      const res = await fetch(`/api/transactions?${params}`);
+      const res = await fetch(`/api/transactions?${params}`, {
+        cache: "no-store",
+      });
       const data = await res.json();
       setTransactions(data.transactions ?? [], data.total ?? 0);
     } finally {
@@ -116,7 +120,7 @@ export default function IncomePage() {
 
   useEffect(() => {
     setTrendLoading(true);
-    fetch("/api/analytics/income-trend")
+    fetch("/api/analytics/income-trend", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => setTrendData(data))
       .finally(() => setTrendLoading(false));
@@ -132,6 +136,7 @@ export default function IncomePage() {
         fetchTransactions();
       } else {
         toast.success("Income entry deleted");
+        router.refresh();
       }
     } finally {
       setDeletingId(null);
@@ -185,10 +190,10 @@ export default function IncomePage() {
                 setSheetOpen(false);
                 setEditingTx(null);
                 fetchTransactions();
-                // Refresh trend data
-                fetch("/api/analytics/income-trend")
+                fetch("/api/analytics/income-trend", { cache: "no-store" })
                   .then((r) => r.json())
                   .then(setTrendData);
+                router.refresh();
               }}
             />
           </SheetContent>

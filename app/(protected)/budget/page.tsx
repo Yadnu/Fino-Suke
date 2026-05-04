@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/Sheet";
@@ -24,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 
 export default function BudgetPage() {
+  const router = useRouter();
   const { budgets, isLoading, setBudgets, removeBudget, setLoading } =
     useBudgetStore();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -36,7 +38,9 @@ export default function BudgetPage() {
   const fetchBudgets = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/budgets?month=${currentMonth}`);
+      const res = await fetch(`/api/budgets?month=${currentMonth}`, {
+        cache: "no-store",
+      });
       const data = await res.json();
       setBudgets(data.budgets ?? []);
     } finally {
@@ -72,6 +76,7 @@ export default function BudgetPage() {
         fetchBudgets();
       } else {
         toast.success("Budget deleted");
+        router.refresh();
       }
     } finally {
       setDeletingId(null);
@@ -137,6 +142,7 @@ export default function BudgetPage() {
                 setSheetOpen(false);
                 setEditingBudget(null);
                 fetchBudgets();
+                router.refresh();
               }}
             />
           </SheetContent>

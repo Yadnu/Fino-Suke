@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   Plus,
@@ -33,6 +34,7 @@ import { Badge } from "@/components/ui/Badge";
 const TYPE_LABELS = { expense: "Expense", income: "Income" };
 
 export default function ExpensesPage() {
+  const router = useRouter();
   const {
     transactions,
     total,
@@ -57,7 +59,9 @@ export default function ExpensesPage() {
       if (search) params.set("search", search);
       params.set("limit", "50");
 
-      const res = await fetch(`/api/transactions?${params}`);
+      const res = await fetch(`/api/transactions?${params}`, {
+        cache: "no-store",
+      });
       const data = await res.json();
       setTransactions(
         data.transactions.map((tx: Transaction & { date: string }) => ({
@@ -87,6 +91,7 @@ export default function ExpensesPage() {
         fetchTransactions(); // revert
       } else {
         toast.success("Transaction deleted");
+        router.refresh();
       }
     } finally {
       setDeletingId(null);
@@ -127,6 +132,7 @@ export default function ExpensesPage() {
                 setSheetOpen(false);
                 setEditingTx(null);
                 fetchTransactions();
+                router.refresh();
               }}
             />
           </SheetContent>
