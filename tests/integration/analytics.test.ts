@@ -60,7 +60,11 @@ const ZERO_SUM = { _sum: { amount: 0 } };
 beforeEach(() => {
   resetPrismaMocks();
   resetRedisMocks();
-  mockAuth.mockResolvedValue({ userId: USER_ID, user: MOCK_USER });
+  mockAuth.mockResolvedValue({
+    userId: USER_ID,
+    user: MOCK_USER,
+    clerkUserId: USER_ID,
+  });
   mockRateLimit.mockResolvedValue({ allowed: true, remaining: 59 });
 });
 

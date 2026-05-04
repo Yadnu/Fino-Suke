@@ -56,7 +56,11 @@ const MOCK_SUBSCRIPTION = {
 beforeEach(() => {
   resetPrismaMocks();
   resetRedisMocks();
-  mockAuth.mockResolvedValue({ userId: MOCK_USER_ID, user: MOCK_USER });
+  mockAuth.mockResolvedValue({
+    userId: MOCK_USER_ID,
+    user: MOCK_USER,
+    clerkUserId: MOCK_USER_ID,
+  });
   mockRateLimit.mockResolvedValue({ allowed: true, remaining: 19 });
   mockSendNotification.mockReset();
   mockGetWebPush.mockReset();

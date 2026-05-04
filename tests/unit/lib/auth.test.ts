@@ -137,11 +137,12 @@ describe("getOrCreateUser — Redis failure fallback", () => {
 });
 
 describe("getAuthenticatedUser", () => {
-  it("should return both userId and user object on success", async () => {
+  it("should return userId, user, and clerkUserId on success", async () => {
     mockAuthFn.mockResolvedValue({ userId: MOCK_CLERK_USER_ID });
     mockRedis.get.mockResolvedValue(MOCK_USER);
-    const { userId, user } = await getAuthenticatedUser();
+    const { userId, user, clerkUserId } = await getAuthenticatedUser();
     expect(userId).toBe(MOCK_CLERK_USER_ID);
+    expect(clerkUserId).toBe(MOCK_CLERK_USER_ID);
     expect(user).toEqual(MOCK_USER);
   });
 

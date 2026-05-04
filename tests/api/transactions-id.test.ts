@@ -55,7 +55,11 @@ const MOCK_TRANSACTION = {
 beforeEach(() => {
   resetPrismaMocks();
   resetRedisMocks();
-  mockAuth.mockResolvedValue({ userId: OWNER_ID, user: MOCK_USER });
+  mockAuth.mockResolvedValue({
+    userId: OWNER_ID,
+    user: MOCK_USER,
+    clerkUserId: OWNER_ID,
+  });
   mockRateLimit.mockResolvedValue({ allowed: true, remaining: 59 });
 });
 

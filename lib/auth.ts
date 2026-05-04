@@ -17,8 +17,25 @@ export async function requireAuth(): Promise<string> {
 }
 
 /**
+ * Resolve Clerk profile fields used to seed or match a DB user.
+ */
+async function clerkProfileFor(clerkUserId: string) {
+  const clerkUser = await currentUser();
+  const email =
+    clerkUser?.emailAddresses?.[0]?.emailAddress ??
+    `${clerkUserId}@finosuke.app`;
+  const name =
+    clerkUser?.fullName ?? clerkUser?.firstName ?? null;
+  return { email, name };
+}
+
+/**
  * Get-or-create the Finosuke user record in Postgres.
- * Called on first authenticated API request so we never need webhooks.
+ * No Clerk webhook — first authenticated API call provisions the row.
+ *
+ * Handles the same human signing in with different Clerk IDs (e.g. Google vs
+ * email/password): we match by email and return the existing account so FKs
+ * stay consistent (`transactions.userId` = `users.id`).
  */
 export async function getOrCreateUser(clerkUserId: string): Promise<User> {
   const cacheKey = `user:${clerkUserId}`;
@@ -30,27 +47,29 @@ export async function getOrCreateUser(clerkUserId: string): Promise<User> {
     // fall through to DB
   }
 
-  const existing = await prisma.user.findUnique({
+  const byClerkId = await prisma.user.findUnique({
     where: { id: clerkUserId },
   });
-  if (existing) {
+  if (byClerkId) {
     try {
-      await redis.set(cacheKey, existing, { ex: 60 });
+      await redis.set(cacheKey, byClerkId, { ex: 60 });
     } catch {
       // silent fail
     }
-    return existing;
+    return byClerkId;
   }
 
-  // Fetch full profile from Clerk to seed the DB record
-  const clerkUser = await currentUser();
-  const email =
-    clerkUser?.emailAddresses?.[0]?.emailAddress ??
-    `${clerkUserId}@finosuke.app`;
-  const name =
-    clerkUser?.fullName ??
-    clerkUser?.firstName ??
-    null;
+  const { email, name } = await clerkProfileFor(clerkUserId);
+
+  const byEmail = await prisma.user.findUnique({ where: { email } });
+  if (byEmail) {
+    try {
+      await redis.set(cacheKey, byEmail, { ex: 60 });
+    } catch {
+      // silent fail
+    }
+    return byEmail;
+  }
 
   try {
     const user = await prisma.user.create({
@@ -79,26 +98,59 @@ export async function getOrCreateUser(clerkUserId: string): Promise<User> {
   } catch (createErr: unknown) {
     if (
       createErr instanceof Prisma.PrismaClientKnownRequestError &&
-      createErr.code === 'P2002'
+      createErr.code === "P2002"
     ) {
-      // H-A: race condition — another concurrent request created the user first
-      const byId = await prisma.user.findUnique({ where: { id: clerkUserId } });
-      if (byId) return byId;
+      const againById = await prisma.user.findUnique({
+        where: { id: clerkUserId },
+      });
+      if (againById) {
+        try {
+          await redis.set(cacheKey, againById, { ex: 60 });
+        } catch {
+          // silent fail
+        }
+        return againById;
+      }
 
-      // H-B: stale DB row with same email but different Clerk ID (e.g. re-registration)
-      const byEmail = await prisma.user.findUnique({ where: { email } });
-      if (byEmail) return byEmail;
+      const againByEmail = await prisma.user.findUnique({ where: { email } });
+      if (againByEmail) {
+        try {
+          await redis.set(cacheKey, againByEmail, { ex: 60 });
+        } catch {
+          // silent fail
+        }
+        return againByEmail;
+      }
     }
     throw createErr;
   }
 }
 
 /**
- * Get Clerk userId + ensure local DB user exists.
- * One-stop helper for API routes.
+ * Clerk session + ensured local `User` row.
+ *
+ * - `clerkUserId`: ID from the current Clerk session (JWT).
+ * - `userId`: Primary key in Postgres to use for all FKs (`user.id`). After an
+ *   email-based merge this may differ from `clerkUserId`.
+ * - `user`: The resolved `User` row.
  */
 export async function getAuthenticatedUser() {
-  const userId = await requireAuth();
-  const user = await getOrCreateUser(userId);
-  return { userId, user };
+  const clerkUserId = await requireAuth();
+
+  try {
+    const user = await getOrCreateUser(clerkUserId);
+    return { userId: user.id, user, clerkUserId };
+  } catch (err: unknown) {
+    const { email } = await clerkProfileFor(clerkUserId);
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      try {
+        await redis.set(`user:${clerkUserId}`, existing, { ex: 60 });
+      } catch {
+        // silent fail
+      }
+      return { userId: existing.id, user: existing, clerkUserId };
+    }
+    throw err;
+  }
 }

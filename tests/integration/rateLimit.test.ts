@@ -39,7 +39,11 @@ const MOCK_USER = {
 beforeEach(() => {
   resetPrismaMocks();
   resetRedisMocks();
-  mockAuth.mockResolvedValue({ userId: USER_ID, user: MOCK_USER });
+  mockAuth.mockResolvedValue({
+    userId: USER_ID,
+    user: MOCK_USER,
+    clerkUserId: USER_ID,
+  });
   mockDb.transaction.findMany.mockResolvedValue([]);
   mockDb.transaction.count.mockResolvedValue(0);
 });

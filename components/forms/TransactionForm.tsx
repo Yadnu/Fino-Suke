@@ -28,16 +28,19 @@ type TransactionFormProps = {
     tags: string[];
     isRecurring: boolean;
   } | null;
+  /** Default type when creating a new transaction (not when editing). */
+  defaultType?: "income" | "expense";
   onSuccess: () => void;
 };
 
 export function TransactionForm({
   editingTransaction,
+  defaultType = "expense",
   onSuccess,
 }: TransactionFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const { addTransaction, updateTransaction } = useTransactionStore();
-  const isEditing = !!editingTransaction;
+  const isEditing = !!(editingTransaction?.id);
 
   const {
     register,
@@ -47,22 +50,23 @@ export function TransactionForm({
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(transactionSchema),
-    defaultValues: editingTransaction
-      ? {
-          amount: editingTransaction.amount,
-          type: editingTransaction.type,
-          categoryId: editingTransaction.categoryId ?? undefined,
-          date: editingTransaction.date.slice(0, 10),
-          notes: editingTransaction.notes ?? "",
-          tags: editingTransaction.tags,
-          isRecurring: editingTransaction.isRecurring,
-        }
-      : {
-          type: "expense",
-          date: formatDate(new Date(), "yyyy-MM-dd"),
-          tags: [],
-          isRecurring: false,
-        },
+    defaultValues:
+      isEditing && editingTransaction
+        ? {
+            amount: editingTransaction.amount,
+            type: editingTransaction.type,
+            categoryId: editingTransaction.categoryId ?? undefined,
+            date: editingTransaction.date.slice(0, 10),
+            notes: editingTransaction.notes ?? "",
+            tags: editingTransaction.tags,
+            isRecurring: editingTransaction.isRecurring,
+          }
+        : {
+            type: defaultType,
+            date: formatDate(new Date(), "yyyy-MM-dd"),
+            tags: [],
+            isRecurring: false,
+          },
   });
 
   useEffect(() => {

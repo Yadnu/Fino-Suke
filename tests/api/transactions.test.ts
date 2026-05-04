@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/auth", () => ({ getAuthenticatedUser: vi.fn() }));
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: vi.fn(),
+}));
+
+vi.mock("@/lib/auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/auth")>();
+  return {
+    ...actual,
+    getAuthenticatedUser: vi.fn(),
+  };
+});
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: vi.fn() }));
 vi.mock("@/lib/db", async () => ({
   default: (await import("../mocks/prisma")).mockPrismaClient,
@@ -9,6 +19,7 @@ vi.mock("@/lib/redis", async () => ({
   redis: (await import("../mocks/redis")).mockRedisClient,
 }));
 
+import { auth } from "@clerk/nextjs/server";
 import { GET, POST } from "@/app/api/transactions/route";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
@@ -17,6 +28,7 @@ import { redis } from "@/lib/redis";
 import { resetPrismaMocks } from "../mocks/prisma";
 import { resetRedisMocks } from "../mocks/redis";
 
+const mockClerkAuth = vi.mocked(auth);
 const mockAuth = vi.mocked(getAuthenticatedUser);
 const mockRateLimit = vi.mocked(rateLimit);
 const mockDb = prisma as typeof import("../mocks/prisma").mockPrismaClient;
@@ -54,8 +66,14 @@ const MOCK_TRANSACTION = {
 beforeEach(() => {
   resetPrismaMocks();
   resetRedisMocks();
-  mockAuth.mockResolvedValue({ userId: MOCK_USER_ID, user: MOCK_USER });
+  mockClerkAuth.mockResolvedValue({ userId: MOCK_USER_ID });
+  mockAuth.mockResolvedValue({
+    userId: MOCK_USER_ID,
+    user: MOCK_USER,
+    clerkUserId: MOCK_USER_ID,
+  });
   mockRateLimit.mockResolvedValue({ allowed: true, remaining: 59 });
+  mockDb.user.findUniqueOrThrow.mockResolvedValue(MOCK_USER);
 });
 
 // ── GET /api/transactions ────────────────────────────────────────────
@@ -122,7 +140,7 @@ describe("GET /api/transactions", () => {
 
 describe("POST /api/transactions", () => {
   it("should return 401 when the user is not authenticated", async () => {
-    mockAuth.mockRejectedValue(new Error("Unauthenticated"));
+    mockClerkAuth.mockResolvedValue({ userId: null });
     const req = new Request("http://localhost/api/transactions", {
       method: "POST",
       body: JSON.stringify({ amount: 50, type: "expense", date: "2024-01-15" }),

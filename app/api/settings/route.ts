@@ -39,7 +39,7 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   try {
-    const { userId } = await getAuthenticatedUser();
+    const { userId, clerkUserId } = await getAuthenticatedUser();
 
     const { allowed } = await rateLimit(userId, 60, 60);
     if (!allowed) {
@@ -63,6 +63,7 @@ export async function PATCH(req: Request) {
 
     try {
       await redis.del(`user:${userId}`);
+      await redis.del(`user:${clerkUserId}`);
     } catch {
       // silent fail
     }

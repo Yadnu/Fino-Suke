@@ -3,7 +3,17 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/auth", () => ({ getAuthenticatedUser: vi.fn() }));
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: vi.fn(),
+}));
+
+vi.mock("@/lib/auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/auth")>();
+  return {
+    ...actual,
+    getAuthenticatedUser: vi.fn(),
+  };
+});
 vi.mock("@/lib/rateLimit", () => ({ rateLimit: vi.fn() }));
 vi.mock("@/lib/db", async () => ({
   default: (await import("../mocks/prisma")).mockPrismaClient,
@@ -12,6 +22,7 @@ vi.mock("@/lib/redis", async () => ({
   redis: (await import("../mocks/redis")).mockRedisClient,
 }));
 
+import { auth } from "@clerk/nextjs/server";
 import { POST } from "@/app/api/transactions/route";
 import { PATCH, DELETE } from "@/app/api/transactions/[id]/route";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -21,6 +32,7 @@ import { redis } from "@/lib/redis";
 import { resetPrismaMocks } from "../mocks/prisma";
 import { resetRedisMocks } from "../mocks/redis";
 
+const mockClerkAuth = vi.mocked(auth);
 const mockAuth = vi.mocked(getAuthenticatedUser);
 const mockRateLimit = vi.mocked(rateLimit);
 const mockDb = prisma as typeof import("../mocks/prisma").mockPrismaClient;
@@ -42,8 +54,14 @@ const MOCK_USER = {
 beforeEach(() => {
   resetPrismaMocks();
   resetRedisMocks();
-  mockAuth.mockResolvedValue({ userId: USER_ID, user: MOCK_USER });
+  mockClerkAuth.mockResolvedValue({ userId: USER_ID });
+  mockAuth.mockResolvedValue({
+    userId: USER_ID,
+    user: MOCK_USER,
+    clerkUserId: USER_ID,
+  });
   mockRateLimit.mockResolvedValue({ allowed: true, remaining: 59 });
+  mockDb.user.findUniqueOrThrow.mockResolvedValue(MOCK_USER);
 });
 
 describe("Flow 1: Create transaction → Prisma called → analytics cache invalidated", () => {

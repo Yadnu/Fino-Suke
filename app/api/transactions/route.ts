@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { transactionSchema, transactionQuerySchema } from "@/lib/validations";
@@ -80,6 +82,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const clerk = await auth();
+    if (!clerk.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { userId } = await getAuthenticatedUser();
 
     const { allowed } = await rateLimit(userId, 60, 60);
@@ -100,6 +107,10 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // FK safety: `userId` is the persisted `users.id` from getAuthenticatedUser (no Clerk webhook;
+    // users are provisioned via getOrCreateUser on authenticated API calls).
+    await prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
     const transaction = await prisma.transaction.create({
       data: {
@@ -126,6 +137,28 @@ export async function POST(req: Request) {
   } catch (err) {
     if (err instanceof Error && err.message === "Unauthenticated") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2003"
+    ) {
+      console.error("[transactions POST] FK violation", err.meta);
+      return NextResponse.json(
+        {
+          error:
+            "Could not save transaction: missing user or category in the database. Try signing out and signing in again.",
+        },
+        { status: 500 }
+      );
+    }
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+      return NextResponse.json(
+        {
+          error:
+            "Account record is not ready yet. Wait a moment and retry, or sign out and sign in again.",
+        },
+        { status: 503 }
+      );
     }
     console.error("[transactions POST]", err);
     return NextResponse.json(

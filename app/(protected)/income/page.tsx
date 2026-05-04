@@ -179,9 +179,8 @@ export default function IncomePage() {
             }
           >
             <TransactionForm
-              editingTransaction={
-                editingTx ?? { type: "income" } as Parameters<typeof TransactionForm>[0]["editingTransaction"]
-              }
+              editingTransaction={editingTx}
+              defaultType="income"
               onSuccess={() => {
                 setSheetOpen(false);
                 setEditingTx(null);

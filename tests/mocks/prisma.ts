@@ -3,6 +3,7 @@ import { vi } from "vitest";
 export const mockPrismaClient = {
   user: {
     findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
   },
