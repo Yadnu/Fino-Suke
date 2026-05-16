@@ -121,3 +121,108 @@ export const transactionQuerySchema = z.object({
 });
 
 export type TransactionQuery = z.infer<typeof transactionQuerySchema>;
+
+// ── AI Chat ───────────────────────────────────────────────────────────
+export const chatHistoryItemSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1).max(4000),
+});
+
+export type ChatHistoryItem = z.infer<typeof chatHistoryItemSchema>;
+
+// ── AI Action schemas (whitelisted write intents) ─────────────────────
+const createTransactionActionSchema = z.object({
+  type: z.literal("create_transaction"),
+  args: z.object({
+    amount: z.number().positive().max(1_000_000),
+    type: z.enum(["expense", "income"]),
+    categoryId: z.string().optional().nullable(),
+    date: z.string().min(1, "Date is required"),
+    notes: z.string().max(500).optional().nullable(),
+    tags: z.array(z.string()).default([]),
+    isRecurring: z.boolean().default(false),
+  }),
+  summary: z.string().max(200),
+});
+
+const createBudgetActionSchema = z.object({
+  type: z.literal("create_budget"),
+  args: z.object({
+    name: z.string().min(1).max(50),
+    categoryId: z.string().optional().nullable(),
+    amount: z.number().positive().max(1_000_000),
+    period: z.enum(["weekly", "monthly"]).default("monthly"),
+    month: z.string().regex(/^\d{4}-\d{2}$/, "Month must be in YYYY-MM format"),
+    rollover: z.boolean().default(false),
+  }),
+  summary: z.string().max(200),
+});
+
+const updateBudgetActionSchema = z.object({
+  type: z.literal("update_budget"),
+  args: z.object({
+    id: z.string().min(1),
+    name: z.string().min(1).max(50).optional(),
+    amount: z.number().positive().max(1_000_000).optional(),
+    period: z.enum(["weekly", "monthly"]).optional(),
+    rollover: z.boolean().optional(),
+  }),
+  summary: z.string().max(200),
+});
+
+const createSavingsGoalActionSchema = z.object({
+  type: z.literal("create_savings_goal"),
+  args: z.object({
+    name: z.string().min(1).max(100),
+    description: z.string().max(500).optional().nullable(),
+    targetAmount: z.number().positive().max(100_000_000),
+    currentAmount: z.number().min(0).default(0),
+    targetDate: z.string().optional().nullable(),
+    icon: z.string().default("🎯"),
+    color: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color")
+      .default("#f5c842"),
+  }),
+  summary: z.string().max(200),
+});
+
+const createBillActionSchema = z.object({
+  type: z.literal("create_bill"),
+  args: z.object({
+    name: z.string().min(1).max(100),
+    amount: z.number().positive().max(1_000_000),
+    frequency: z.enum(["monthly", "weekly", "yearly", "once"]).default("monthly"),
+    dueDay: z.coerce.number().int().min(1).max(31),
+    categoryId: z.string().optional().nullable(),
+    notes: z.string().max(500).optional().nullable(),
+  }),
+  summary: z.string().max(200),
+});
+
+export const confirmedActionSchema = z.discriminatedUnion("type", [
+  createTransactionActionSchema,
+  createBudgetActionSchema,
+  updateBudgetActionSchema,
+  createSavingsGoalActionSchema,
+  createBillActionSchema,
+]);
+
+export type ConfirmedAction = z.infer<typeof confirmedActionSchema>;
+export type ActionType = ConfirmedAction["type"];
+
+export const AI_ACTION_TYPES = [
+  "create_transaction",
+  "create_budget",
+  "update_budget",
+  "create_savings_goal",
+  "create_bill",
+] as const satisfies readonly ActionType[];
+
+export const chatRequestSchema = z.object({
+  message: z.string().min(1, "Message is required").max(2000, "Message too long"),
+  history: z.array(chatHistoryItemSchema).max(20, "History too long").default([]),
+  confirmedAction: confirmedActionSchema.optional(),
+});
+
+export type ChatRequest = z.infer<typeof chatRequestSchema>;

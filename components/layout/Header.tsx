@@ -6,6 +6,7 @@ import { Activity, Bell } from "lucide-react";
 import { getGreeting } from "@/lib/utils";
 
 type HeaderProps = {
+  /** Kept for API compatibility; UI is hidden — see health score wrapper below. */
   healthScore?: number;
 };
 
@@ -28,7 +29,10 @@ const clerkUserButtonAppearance = {
     userButtonPopoverFooter: "hidden",
     userPreviewMainIdentifier: "text-foreground font-medium text-sm",
     userPreviewSecondaryIdentifier: "text-muted text-xs",
-    userButtonAvatarBox: "w-8 h-8 rounded-md",
+    userButtonTrigger:
+      "rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    userButtonAvatarBox:
+      "w-9 h-9 shrink-0 rounded-md border border-border bg-accent/40 shadow-sm [&_img]:object-cover",
   },
 };
 
@@ -48,18 +52,23 @@ export function Header({ healthScore = 78 }: HeaderProps) {
         <p className="text-xs text-muted mt-0.5">{today}</p>
       </div>
 
-      {/* Right: health score + notifications + user button */}
+      {/* Right: health score (hidden in UI) + notifications + user button */}
       <div className="flex items-center gap-3">
-        {/* Financial Health Score */}
-        <div className="flex items-center gap-2 bg-teal/10 border border-teal/20 rounded-pill px-3 py-1.5">
-          <Activity className="w-3.5 h-3.5 text-teal" />
-          <span className="text-xs font-semibold text-teal hidden sm:inline">
-            Health Score
-          </span>
-          <span className="text-xs font-bold text-foreground">
-            {healthScore}
-            <span className="text-muted font-normal">/100</span>
-          </span>
+        {/* Financial Health Score — markup retained; hidden per product request */}
+        <div
+          className="hidden"
+          aria-hidden="true"
+        >
+          <div className="flex items-center gap-2 bg-teal/10 border border-teal/20 rounded-pill px-3 py-1.5">
+            <Activity className="w-3.5 h-3.5 text-teal" />
+            <span className="text-xs font-semibold text-teal hidden sm:inline">
+              Health Score
+            </span>
+            <span className="text-xs font-bold text-foreground">
+              {healthScore}
+              <span className="text-muted font-normal">/100</span>
+            </span>
+          </div>
         </div>
 
         {/* Bill reminders use browser push when enabled; no in-app inbox yet */}
@@ -73,13 +82,15 @@ export function Header({ healthScore = 78 }: HeaderProps) {
           <Bell className="w-4 h-4 opacity-60" />
         </button>
 
-        {/* Clerk UserButton — handles profile, account, sign-out */}
-        <UserButton
-          appearance={clerkUserButtonAppearance}
-          showName={false}
-          userProfileMode="navigation"
-          userProfileUrl="/settings"
-        />
+        {/* Clerk UserButton — profile image / initials + account menu */}
+        <div className="flex shrink-0 items-center">
+          <UserButton
+            appearance={clerkUserButtonAppearance}
+            showName={false}
+            userProfileMode="navigation"
+            userProfileUrl="/settings"
+          />
+        </div>
       </div>
     </header>
   );
