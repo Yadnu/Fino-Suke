@@ -219,6 +219,14 @@ export const AI_ACTION_TYPES = [
   "create_bill",
 ] as const satisfies readonly ActionType[];
 
+/** Base request — only validates message + history. Used for the initial parse so
+ * an invalid confirmedAction type returns 422 instead of 400. */
+export const chatRequestBaseSchema = z.object({
+  message: z.string().min(1, "Message is required").max(2000, "Message too long"),
+  history: z.array(chatHistoryItemSchema).max(20, "History too long").default([]),
+  confirmedAction: z.unknown().optional(),
+});
+
 export const chatRequestSchema = z.object({
   message: z.string().min(1, "Message is required").max(2000, "Message too long"),
   history: z.array(chatHistoryItemSchema).max(20, "History too long").default([]),

@@ -333,7 +333,7 @@ export function parseAIResponse(raw: string): AIResponse {
       typeof parsed.proposedAction === "object"
     ) {
       const proposal = parsed.proposedAction as Record<string, unknown>;
-      if (typeof proposal.type === "string" && typeof proposal.args === "object") {
+      if (typeof proposal.type === "string" && proposal.args !== null && typeof proposal.args === "object") {
         return {
           type: "action",
           summary: parsed.summary,
