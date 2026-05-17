@@ -93,6 +93,20 @@ export const depositSchema = z.object({
 
 export type DepositInput = z.infer<typeof depositSchema>;
 
+// ── NetWorthAccount ──────────────────────────────────────────────────
+export const netWorthAccountSchema = z.object({
+  name:     z.string().min(1, "Name is required").max(100, "Name too long"),
+  type:     z.enum(["asset", "liability"]),
+  category: z.enum([
+    "cash", "investment", "real_estate", "vehicle", "other_asset",
+    "credit_card", "loan", "mortgage", "other_liability",
+  ]),
+  value:    z.coerce.number().min(0, "Value must be 0 or greater").max(1_000_000_000, "Value seems too large"),
+  notes:    z.string().max(500, "Notes too long").optional().nullable(),
+});
+
+export type NetWorthAccountInput = z.infer<typeof netWorthAccountSchema>;
+
 // ── Bill ─────────────────────────────────────────────────────────────
 export const billSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name too long"),

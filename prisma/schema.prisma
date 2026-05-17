@@ -19,12 +19,14 @@ model User {
   avatar       String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-  transactions      Transaction[]
-  budgets           Budget[]
-  categories        Category[]
-  savingsGoals      SavingsGoal[]
-  bills             Bill[]
-  pushSubscriptions PushSubscription[]
+  transactions       Transaction[]
+  budgets            Budget[]
+  categories         Category[]
+  savingsGoals       SavingsGoal[]
+  bills              Bill[]
+  pushSubscriptions  PushSubscription[]
+  netWorthAccounts   NetWorthAccount[]
+  netWorthSnapshots  NetWorthSnapshot[]
 
   @@map("users")
 }
@@ -137,4 +139,37 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+model NetWorthAccount {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  type      String   // "asset" | "liability"
+  category  String   // "cash"|"investment"|"real_estate"|"vehicle"|"other_asset"
+                     // "credit_card"|"loan"|"mortgage"|"other_liability"
+  value     Float
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("net_worth_accounts")
+}
+
+model NetWorthSnapshot {
+  id               String   @id @default(cuid())
+  userId           String
+  month            String   // "YYYY-MM", one row per user per month
+  totalAssets      Float
+  totalLiabilities Float
+  netWorth         Float
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+  @@index([userId])
+  @@map("net_worth_snapshots")
 }
