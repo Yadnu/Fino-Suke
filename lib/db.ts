@@ -14,7 +14,18 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClientSingleton | undefined;
 };
 
-const prisma = globalForPrisma.prisma ?? createPrismaClient();
+/** Drop cached client when schema delegates are missing (e.g. after `prisma generate`). */
+function isStalePrismaClient(client: PrismaClientSingleton | undefined): boolean {
+  return !client || !("netWorthAccount" in client);
+}
+
+let prisma = globalForPrisma.prisma;
+if (isStalePrismaClient(prisma)) {
+  if (prisma) {
+    void prisma.$disconnect().catch(() => {});
+  }
+  prisma = createPrismaClient();
+}
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

@@ -77,8 +77,8 @@ Phase 2 routes above are live. Remaining roadmap items are labeled by phase belo
 |-------|----------|
 | Phase 1 | Auth, Expense Tracking, Budget Planning, Dashboard |
 | Phase 2 | Income, Bills, Savings Goals, Analytics, Settings |
-| **Phase 3 (current)** | AI Assistant (Q&A + write actions), Net Worth |
-| Phase 4 | Multi-currency, PWA, CSV Import/Export |
+| Phase 3 | AI Assistant (Q&A + write actions), Net Worth Tracker |
+| **Phase 4 (current)** | Multi-currency, PWA, CSV Import/Export |
 | Phase 5 | Bank Sync (Plaid), Advanced AI |
 
 ## Design System

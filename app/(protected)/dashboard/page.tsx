@@ -11,7 +11,9 @@ import {
 } from "@/components/dashboard/UpcomingBillsTeaser";
 import { SavingsGoalsTeaser } from "@/components/dashboard/SavingsGoalsTeaser";
 import { AiTipPlaceholder } from "@/components/dashboard/AiTipPlaceholder";
+import { NetWorthTeaser } from "@/components/dashboard/NetWorthTeaser";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { getNetWorthSummary } from "@/lib/networth";
 import prisma from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +35,7 @@ async function getDashboardData(userId: string) {
     budgets,
     upcomingBills,
     savingsGoalsPreview,
+    netWorthSummary,
   ] = await Promise.all([
     prisma.transaction.aggregate({
       where: {
@@ -88,6 +91,7 @@ async function getDashboardData(userId: string) {
       orderBy: { updatedAt: "desc" },
       take: 3,
     }),
+    getNetWorthSummary(userId),
   ]);
 
   const totalIncome = incomeAgg._sum.amount ?? 0;
@@ -140,6 +144,7 @@ async function getDashboardData(userId: string) {
     })),
     upcomingBills,
     savingsGoalsPreview,
+    netWorthTotals: netWorthSummary.totals,
   };
 }
 
@@ -166,6 +171,7 @@ export default async function DashboardPage() {
     savingsGoalsPreview,
     recentTransactions,
     budgets,
+    netWorthTotals,
     ...summary
   } = data;
 
@@ -253,8 +259,10 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <UpcomingBillsTeaser bills={serializedBills} currency={user.currency} />
-        <AiTipPlaceholder />
+        <NetWorthTeaser totals={netWorthTotals} currency={user.currency} />
       </div>
+
+      <AiTipPlaceholder />
     </div>
   );
 }

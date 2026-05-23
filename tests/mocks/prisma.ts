@@ -55,6 +55,17 @@ export const mockPrismaClient = {
     delete: vi.fn(),
     deleteMany: vi.fn(),
   },
+  netWorthAccount: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
+  netWorthSnapshot: {
+    findMany: vi.fn(),
+    upsert: vi.fn(),
+  },
 };
 
 export function resetPrismaMocks() {

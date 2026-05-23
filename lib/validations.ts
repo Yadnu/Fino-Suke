@@ -94,7 +94,14 @@ export const depositSchema = z.object({
 export type DepositInput = z.infer<typeof depositSchema>;
 
 // ── NetWorthAccount ──────────────────────────────────────────────────
-export const netWorthAccountSchema = z.object({
+const ASSET_CATEGORIES = ["cash", "investment", "real_estate", "vehicle", "other_asset"] as const;
+const LIABILITY_CATEGORIES = ["credit_card", "loan", "mortgage", "other_liability"] as const;
+
+export type AssetCategory = (typeof ASSET_CATEGORIES)[number];
+export type LiabilityCategory = (typeof LIABILITY_CATEGORIES)[number];
+export type AccountCategory = AssetCategory | LiabilityCategory;
+
+const netWorthAccountBaseSchema = z.object({
   name:     z.string().min(1, "Name is required").max(100, "Name too long"),
   type:     z.enum(["asset", "liability"]),
   category: z.enum([
@@ -104,6 +111,26 @@ export const netWorthAccountSchema = z.object({
   value:    z.coerce.number().min(0, "Value must be 0 or greater").max(1_000_000_000, "Value seems too large"),
   notes:    z.string().max(500, "Notes too long").optional().nullable(),
 });
+
+export const netWorthAccountSchema = netWorthAccountBaseSchema.superRefine((data, ctx) => {
+  if (data.type === "asset" && !(ASSET_CATEGORIES as readonly string[]).includes(data.category)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["category"],
+      message: "Category does not match account type 'asset'",
+    });
+  }
+  if (data.type === "liability" && !(LIABILITY_CATEGORIES as readonly string[]).includes(data.category)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["category"],
+      message: "Category does not match account type 'liability'",
+    });
+  }
+});
+
+/** Partial schema for PATCH — no cross-field refinement needed (all fields optional). */
+export const netWorthAccountPatchSchema = netWorthAccountBaseSchema.partial();
 
 export type NetWorthAccountInput = z.infer<typeof netWorthAccountSchema>;
 

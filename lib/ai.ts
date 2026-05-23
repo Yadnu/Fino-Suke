@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import prisma from "@/lib/db";
+import { sumAccounts } from "@/lib/networth";
 import type { ChatHistoryItem } from "@/lib/validations";
 
 // ── OpenAI client ─────────────────────────────────────────────────────────────
@@ -54,6 +55,14 @@ interface BillSummary {
   dueDay: number;
 }
 
+interface NetWorthSummary {
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+  topAssets: { name: string; category: string; value: number }[];
+  topLiabilities: { name: string; category: string; value: number }[];
+}
+
 export interface UserFinanceContext {
   currency: string;
   currentMonth: string;
@@ -63,6 +72,7 @@ export interface UserFinanceContext {
   activeBudgets: BudgetSummary[];
   savingsGoals: SavingsGoalSummary[];
   activeBills: BillSummary[];
+  netWorth: NetWorthSummary | null;
 }
 
 /**
@@ -75,7 +85,7 @@ export async function buildUserContext(userId: string): Promise<UserFinanceConte
   const monthStart = new Date(`${currentMonth}-01T00:00:00.000Z`);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  const [user, recentTx, monthTx, budgets, goals, bills] = await Promise.all([
+  const [user, recentTx, monthTx, budgets, goals, bills, nwAccounts] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { currency: true },
@@ -117,6 +127,11 @@ export async function buildUserContext(userId: string): Promise<UserFinanceConte
       orderBy: { dueDay: "asc" },
       take: 10,
       select: { name: true, amount: true, frequency: true, dueDay: true },
+    }),
+    prisma.netWorthAccount.findMany({
+      where: { userId },
+      orderBy: { value: "desc" },
+      select: { name: true, type: true, category: true, value: true },
     }),
   ]);
 
@@ -164,6 +179,19 @@ export async function buildUserContext(userId: string): Promise<UserFinanceConte
       progress: g.targetAmount > 0 ? Math.round((g.currentAmount / g.targetAmount) * 100) : 0,
     })),
     activeBills: bills,
+    netWorth: nwAccounts.length > 0
+      ? {
+          ...sumAccounts(nwAccounts),
+          topAssets: nwAccounts
+            .filter((a) => a.type === "asset")
+            .slice(0, 5)
+            .map(({ name, category, value }) => ({ name, category, value })),
+          topLiabilities: nwAccounts
+            .filter((a) => a.type === "liability")
+            .slice(0, 5)
+            .map(({ name, category, value }) => ({ name, category, value })),
+        }
+      : null,
   };
 }
 
@@ -232,6 +260,23 @@ function buildSystemPrompt(ctx: UserFinanceContext): string {
     lines.push(``, `## Recurring Bills`);
     for (const b of ctx.activeBills) {
       lines.push(`- ${b.name}: ${b.amount} ${ctx.currency} (${b.frequency}, due day ${b.dueDay})`);
+    }
+  }
+
+  if (ctx.netWorth) {
+    const nw = ctx.netWorth;
+    lines.push(
+      ``,
+      `## Net Worth`,
+      `Total assets:      ${nw.totalAssets} ${ctx.currency}`,
+      `Total liabilities: ${nw.totalLiabilities} ${ctx.currency}`,
+      `Net worth:         ${nw.netWorth} ${ctx.currency}`,
+    );
+    if (nw.topAssets.length > 0) {
+      lines.push(`Top assets: ${nw.topAssets.map((a) => `${a.name} (${a.value})`).join(", ")}`);
+    }
+    if (nw.topLiabilities.length > 0) {
+      lines.push(`Top liabilities: ${nw.topLiabilities.map((l) => `${l.name} (${l.value})`).join(", ")}`);
     }
   }
 
