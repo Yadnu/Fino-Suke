@@ -31,7 +31,8 @@ import {
   useTransactionStore,
   type Transaction,
 } from "@/lib/stores/transactionStore";
-import { formatCurrency, formatDate, cn } from "@/lib/utils";
+import { formatCurrency, formatCompactCurrency, formatDate, cn } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 import { Badge } from "@/components/ui/Badge";
 
 type TrendPoint = {
@@ -58,10 +59,14 @@ function CustomTooltip({
   active,
   payload,
   label,
+  currency,
+  locale,
 }: {
   active?: boolean;
   payload?: Array<{ name: string; value: number }>;
   label?: string;
+  currency: string;
+  locale: string;
 }) {
   if (!active || !payload?.length) return null;
   return (
@@ -71,7 +76,7 @@ function CustomTooltip({
         <p key={p.name} className="text-muted">
           {p.name}:{" "}
           <span className="text-foreground font-medium">
-            {formatCurrency(p.value)}
+            {formatCurrency(p.value, currency, locale)}
           </span>
         </p>
       ))}
@@ -81,6 +86,7 @@ function CustomTooltip({
 
 export default function IncomePage() {
   const router = useRouter();
+  const { currency, locale } = useUserSettings();
   const {
     transactions,
     total,
@@ -215,7 +221,7 @@ export default function IncomePage() {
               </div>
             </div>
             <p className="font-display text-xl font-bold text-foreground">
-              {formatCurrency(currentIncome)}
+              {formatCurrency(currentIncome, currency, locale)}
             </p>
             <p className="text-xs text-muted mt-1.5">total income</p>
           </div>
@@ -228,7 +234,7 @@ export default function IncomePage() {
               </div>
             </div>
             <p className="font-display text-xl font-bold text-foreground">
-              {formatCurrency(avgIncome)}
+              {formatCurrency(avgIncome, currency, locale)}
             </p>
             <p className="text-xs text-muted mt-1.5">over last 6 months</p>
           </div>
@@ -243,7 +249,7 @@ export default function IncomePage() {
             {topSource ? (
               <>
                 <p className="font-display text-xl font-bold text-foreground">
-                  {formatCurrency(topSource.amount)}
+                  {formatCurrency(topSource.amount, currency, locale)}
                 </p>
                 <p className="text-xs text-muted mt-1.5 truncate">
                   {topSource.category?.icon ?? "📦"}{" "}
@@ -288,11 +294,9 @@ export default function IncomePage() {
                   tick={{ fill: "#71717a", fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(v) =>
-                    `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`
-                  }
+                  tickFormatter={(v) => formatCompactCurrency(v, currency, locale)}
                 />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: "#2a2a32" }} />
+                <Tooltip content={<CustomTooltip currency={currency} locale={locale} />} cursor={{ fill: "#2a2a32" }} />
                 <Bar
                   dataKey="income"
                   name="Income"
@@ -383,7 +387,7 @@ export default function IncomePage() {
                       </div>
 
                       <span className="text-sm font-semibold text-success shrink-0">
-                        +{formatCurrency(tx.amount)}
+                        +{formatCurrency(tx.amount, currency, locale)}
                       </span>
 
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">

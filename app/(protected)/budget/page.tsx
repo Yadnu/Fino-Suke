@@ -22,10 +22,12 @@ import {
   clampPercent,
   cn,
 } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 import { Badge } from "@/components/ui/Badge";
 
 export default function BudgetPage() {
   const router = useRouter();
+  const { currency, locale } = useUserSettings();
   const { budgets, isLoading, setBudgets, removeBudget, setLoading } =
     useBudgetStore();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -156,9 +158,9 @@ export default function BudgetPage() {
             <div>
               <p className="text-sm text-muted">Overall Budget Usage</p>
               <p className="font-display text-xl font-bold text-foreground mt-0.5">
-                {formatCurrency(totalSpent)} /{" "}
+                {formatCurrency(totalSpent, currency, locale)} /{" "}
                 <span className="text-muted font-normal text-base">
-                  {formatCurrency(totalBudget)}
+                  {formatCurrency(totalBudget, currency, locale)}
                 </span>
               </p>
             </div>
@@ -295,7 +297,7 @@ export default function BudgetPage() {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted">
-                      {formatCurrency(spent)} spent
+                      {formatCurrency(spent, currency, locale)} spent
                     </span>
                     <span
                       className="text-xs font-semibold"
@@ -318,7 +320,7 @@ export default function BudgetPage() {
                 {/* Footer */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted">
-                    of {formatCurrency(budget.amount)}
+                    of {formatCurrency(budget.amount, currency, locale)}
                   </span>
                   <Badge
                     variant={

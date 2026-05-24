@@ -13,6 +13,7 @@ import {
   billDaysUntilDue,
   cn,
 } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 
 const BILLS_PUSH_SESSION_KEY = "finosuke-bills-urgent-push";
 
@@ -48,6 +49,7 @@ function normalizeBill(raw: Record<string, unknown>): Bill {
 }
 
 export default function BillsPage() {
+  const { currency, locale } = useUserSettings();
   const {
     bills,
     isLoading,
@@ -130,7 +132,7 @@ export default function BillsPage() {
 
     const body = urgent
       .slice(0, 4)
-      .map((b) => `${b.name} (${formatCurrency(b.amount)})`)
+      .map((b) => `${b.name} (${formatCurrency(b.amount, currency, locale)})`)
       .join(" · ");
 
     void fetch("/api/push/notify", {
@@ -223,7 +225,7 @@ export default function BillsPage() {
             Est. monthly load
           </p>
           <p className="text-lg font-bold text-foreground mt-1 tabular-nums">
-            {formatCurrency(summary.estMonthly)}
+            {formatCurrency(summary.estMonthly, currency, locale)}
           </p>
           <p className="text-[11px] text-muted mt-1">Active bills, normalized</p>
         </div>
@@ -233,7 +235,7 @@ export default function BillsPage() {
           </p>
           <p className="text-lg font-bold text-foreground mt-1 tabular-nums">
             {summary.dueSoonCount > 0
-              ? formatCurrency(summary.dueSoonTotal)
+              ? formatCurrency(summary.dueSoonTotal, currency, locale)
               : "—"}
           </p>
           <p className="text-[11px] text-muted mt-1">

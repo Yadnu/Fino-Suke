@@ -25,10 +25,12 @@ import {
 } from "lucide-react";
 import {
   formatCurrency,
+  formatCompactCurrency,
   formatPercent,
   getMonthKey,
   cn,
 } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
 
 type CategoryBreakdownItem = {
@@ -71,9 +73,13 @@ function nextMonth(key: string) {
 function CustomPieTooltip({
   active,
   payload,
+  currency,
+  locale,
 }: {
   active?: boolean;
   payload?: Array<{ name: string; value: number; payload: { color: string } }>;
+  currency: string;
+  locale: string;
 }) {
   if (!active || !payload?.length) return null;
   const p = payload[0];
@@ -83,7 +89,7 @@ function CustomPieTooltip({
       <p className="text-muted">
         Spent:{" "}
         <span className="text-foreground font-medium">
-          {formatCurrency(p.value)}
+          {formatCurrency(p.value, currency, locale)}
         </span>
       </p>
     </div>
@@ -94,10 +100,14 @@ function CustomBarTooltip({
   active,
   payload,
   label,
+  currency,
+  locale,
 }: {
   active?: boolean;
   payload?: Array<{ name: string; value: number }>;
   label?: string;
+  currency: string;
+  locale: string;
 }) {
   if (!active || !payload?.length) return null;
   return (
@@ -107,7 +117,7 @@ function CustomBarTooltip({
         <p key={p.name} className="text-muted">
           {p.name}:{" "}
           <span className="text-foreground font-medium">
-            {formatCurrency(p.value)}
+            {formatCurrency(p.value, currency, locale)}
           </span>
         </p>
       ))}
@@ -116,6 +126,7 @@ function CustomBarTooltip({
 }
 
 export default function AnalyticsPage() {
+  const { currency, locale } = useUserSettings();
   const [month, setMonth] = useState(getMonthKey());
   const [data, setData] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -164,7 +175,7 @@ export default function AnalyticsPage() {
     ? [
         {
           label: "Total Income",
-          value: formatCurrency(data.totalIncome),
+          value: formatCurrency(data.totalIncome, currency, locale),
           trend: data.incomeTrend,
           icon: TrendingUp,
           iconColor: "text-success",
@@ -172,7 +183,7 @@ export default function AnalyticsPage() {
         },
         {
           label: "Total Expenses",
-          value: formatCurrency(data.totalExpenses),
+          value: formatCurrency(data.totalExpenses, currency, locale),
           trend: data.expensesTrend,
           invertTrend: true,
           icon: TrendingDown,
@@ -181,7 +192,7 @@ export default function AnalyticsPage() {
         },
         {
           label: "Net Savings",
-          value: formatCurrency(Math.abs(data.netSavings)),
+          value: formatCurrency(Math.abs(data.netSavings), currency, locale),
           subtext: data.netSavings < 0 ? "deficit" : "saved",
           icon: PiggyBank,
           iconColor: data.netSavings >= 0 ? "text-gold" : "text-danger",
@@ -318,7 +329,7 @@ export default function AnalyticsPage() {
                           <Cell key={i} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip content={<CustomPieTooltip />} />
+                      <Tooltip content={<CustomPieTooltip currency={currency} locale={locale} />} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -379,9 +390,9 @@ export default function AnalyticsPage() {
                       tick={{ fill: "#71717a", fontSize: 11 }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                      tickFormatter={(v) => formatCompactCurrency(v, currency, locale)}
                     />
-                    <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "#2a2a32" }} />
+                    <Tooltip content={<CustomBarTooltip currency={currency} locale={locale} />} cursor={{ fill: "#2a2a32" }} />
                     <Legend
                       wrapperStyle={{ fontSize: 11, color: "#71717a" }}
                     />
@@ -424,7 +435,7 @@ export default function AnalyticsPage() {
                         {name}
                       </span>
                       <span className="text-sm font-semibold text-foreground">
-                        {formatCurrency(item.amount)}
+                        {formatCurrency(item.amount, currency, locale)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -453,7 +464,7 @@ export default function AnalyticsPage() {
               Total Expenses
             </span>
             <span className="text-sm font-bold text-danger">
-              {formatCurrency(total)}
+              {formatCurrency(total, currency, locale)}
             </span>
           </div>
         </div>

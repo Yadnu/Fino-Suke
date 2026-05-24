@@ -29,12 +29,14 @@ import {
   formatDate,
   cn,
 } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 import { Badge } from "@/components/ui/Badge";
 
 const TYPE_LABELS = { expense: "Expense", income: "Income" };
 
 export default function ExpensesPage() {
   const router = useRouter();
+  const { currency, locale } = useUserSettings();
   const {
     transactions,
     total,
@@ -249,7 +251,7 @@ export default function ExpensesPage() {
                         )}
                       >
                         {isExpense ? "−" : "+"}
-                        {formatCurrency(tx.amount)}
+                        {formatCurrency(tx.amount, currency, locale)}
                       </span>
 
                       {/* Actions */}

@@ -14,8 +14,10 @@ import {
   type SavingsGoal,
 } from "@/lib/stores/savingsStore";
 import { formatCurrency } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 
 export default function SavingsPage() {
+  const { currency, locale } = useUserSettings();
   const { goals, isLoading, setGoals, removeGoal, setLoading } =
     useSavingsStore();
 
@@ -136,9 +138,9 @@ export default function SavingsPage() {
             <span className="text-muted">Total saved</span>
             <div className="flex items-center gap-1.5">
               <span className="font-semibold text-foreground">
-                {formatCurrency(totalSaved)}
+                {formatCurrency(totalSaved, currency, locale)}
               </span>
-              <span className="text-muted">/ {formatCurrency(totalTarget)}</span>
+              <span className="text-muted">/ {formatCurrency(totalTarget, currency, locale)}</span>
             </div>
           </div>
         </div>
