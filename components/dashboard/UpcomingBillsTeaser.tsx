@@ -18,6 +18,7 @@ export type DashboardBill = {
 type UpcomingBillsTeaserProps = {
   bills: DashboardBill[];
   currency: string;
+  locale?: string;
 };
 
 function dueStatusLabel(nextDueDate: string): string {
@@ -28,7 +29,7 @@ function dueStatusLabel(nextDueDate: string): string {
   return `Due in ${days} days`;
 }
 
-export function UpcomingBillsTeaser({ bills, currency }: UpcomingBillsTeaserProps) {
+export function UpcomingBillsTeaser({ bills, currency, locale = "en-US" }: UpcomingBillsTeaserProps) {
   return (
     <div className="bg-surface border border-border rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
@@ -95,7 +96,7 @@ export function UpcomingBillsTeaser({ bills, currency }: UpcomingBillsTeaserProp
                   </p>
                 </div>
                 <span className="text-sm font-semibold text-foreground shrink-0 tabular-nums">
-                  {formatCurrency(bill.amount, currency)}
+                  {formatCurrency(bill.amount, currency, locale)}
                 </span>
               </li>
             );

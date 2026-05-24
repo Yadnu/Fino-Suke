@@ -6,9 +6,10 @@ import type { NetWorthTotals } from "@/lib/networth";
 type Props = {
   totals: NetWorthTotals | null;
   currency: string;
+  locale?: string;
 };
 
-export function NetWorthTeaser({ totals, currency }: Props) {
+export function NetWorthTeaser({ totals, currency, locale = "en-US" }: Props) {
   const hasData = totals && (totals.totalAssets > 0 || totals.totalLiabilities > 0);
 
   return (
@@ -44,18 +45,18 @@ export function NetWorthTeaser({ totals, currency }: Props) {
         <div className="space-y-3">
           <Row
             label="Assets"
-            value={formatCurrency(totals.totalAssets, currency)}
+            value={formatCurrency(totals.totalAssets, currency, locale)}
             valueClass="text-success"
           />
           <Row
             label="Liabilities"
-            value={formatCurrency(totals.totalLiabilities, currency)}
+            value={formatCurrency(totals.totalLiabilities, currency, locale)}
             valueClass="text-danger"
           />
           <div className="border-t border-border pt-3">
             <Row
               label="Net Worth"
-              value={formatCurrency(totals.netWorth, currency)}
+              value={formatCurrency(totals.netWorth, currency, locale)}
               valueClass={cn(
                 "font-bold text-base",
                 totals.netWorth >= 0 ? "text-gold" : "text-danger"

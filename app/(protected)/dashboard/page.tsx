@@ -233,6 +233,7 @@ export default async function DashboardPage() {
         incomeTrend={serialized.incomeTrend}
         expensesTrend={serialized.expensesTrend}
         currency={user.currency}
+        locale={user.locale}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -241,10 +242,12 @@ export default async function DashboardPage() {
             serialized.budgets as Parameters<typeof BudgetStatusGrid>[0]["budgets"]
           }
           currency={user.currency}
+          locale={user.locale}
         />
         <SavingsGoalsTeaser
           goals={serialized.savingsGoalsPreview}
           currency={user.currency}
+          locale={user.locale}
         />
       </div>
 
@@ -255,11 +258,12 @@ export default async function DashboardPage() {
           >[0]["transactions"]
         }
         currency={user.currency}
+        locale={user.locale}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UpcomingBillsTeaser bills={serializedBills} currency={user.currency} />
-        <NetWorthTeaser totals={netWorthTotals} currency={user.currency} />
+        <UpcomingBillsTeaser bills={serializedBills} currency={user.currency} locale={user.locale} />
+        <NetWorthTeaser totals={netWorthTotals} currency={user.currency} locale={user.locale} />
       </div>
 
       <AiTipPlaceholder />

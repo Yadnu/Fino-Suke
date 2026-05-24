@@ -11,6 +11,7 @@ type MonthlySnapshotProps = {
   incomeTrend: number;
   expensesTrend: number;
   currency?: string;
+  locale?: string;
 };
 
 export function MonthlySnapshot({
@@ -21,11 +22,12 @@ export function MonthlySnapshot({
   incomeTrend,
   expensesTrend,
   currency = "USD",
+  locale = "en-US",
 }: MonthlySnapshotProps) {
   const stats = [
     {
       label: "Total Income",
-      value: formatCurrency(totalIncome, currency),
+      value: formatCurrency(totalIncome, currency, locale),
       trend: incomeTrend,
       icon: TrendingUp,
       iconBg: "bg-success/10",
@@ -33,7 +35,7 @@ export function MonthlySnapshot({
     },
     {
       label: "Total Expenses",
-      value: formatCurrency(totalExpenses, currency),
+      value: formatCurrency(totalExpenses, currency, locale),
       trend: -expensesTrend,
       icon: TrendingDown,
       iconBg: "bg-danger/10",
@@ -41,7 +43,7 @@ export function MonthlySnapshot({
     },
     {
       label: "Net Savings",
-      value: formatCurrency(Math.abs(netSavings), currency),
+      value: formatCurrency(Math.abs(netSavings), currency, locale),
       subtext: netSavings < 0 ? "deficit" : "saved",
       icon: DollarSign,
       iconBg: netSavings >= 0 ? "bg-gold/10" : "bg-danger/10",

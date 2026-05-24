@@ -15,6 +15,7 @@ export type DashboardSavingsGoal = {
 type SavingsGoalsTeaserProps = {
   goals: DashboardSavingsGoal[];
   currency: string;
+  locale?: string;
 };
 
 function goalPercent(goal: DashboardSavingsGoal): number {
@@ -25,7 +26,7 @@ function goalPercent(goal: DashboardSavingsGoal): number {
   );
 }
 
-export function SavingsGoalsTeaser({ goals, currency }: SavingsGoalsTeaserProps) {
+export function SavingsGoalsTeaser({ goals, currency, locale = "en-US" }: SavingsGoalsTeaserProps) {
   return (
     <div className="bg-surface border border-border rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
@@ -71,8 +72,8 @@ export function SavingsGoalsTeaser({ goals, currency }: SavingsGoalsTeaserProps)
                       {goal.name}
                     </p>
                     <p className="text-xs text-muted">
-                      {formatCurrency(goal.currentAmount, currency)} of{" "}
-                      {formatCurrency(goal.targetAmount, currency)} · {pct}%
+                      {formatCurrency(goal.currentAmount, currency, locale)} of{" "}
+                      {formatCurrency(goal.targetAmount, currency, locale)} · {pct}%
                     </p>
                   </div>
                 </div>

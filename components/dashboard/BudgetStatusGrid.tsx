@@ -8,11 +8,13 @@ import type { Budget } from "@/lib/stores/budgetStore";
 type BudgetStatusGridProps = {
   budgets: (Budget & { spent?: number })[];
   currency?: string;
+  locale?: string;
 };
 
 export function BudgetStatusGrid({
   budgets,
   currency = "USD",
+  locale = "en-US",
 }: BudgetStatusGridProps) {
   const display = budgets.slice(0, 4);
 
@@ -73,7 +75,7 @@ export function BudgetStatusGrid({
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted">
-                    {formatCurrency(spent, currency)} spent
+                    {formatCurrency(spent, currency, locale)} spent
                   </span>
                   <span
                     className="text-xs font-semibold"
@@ -94,7 +96,7 @@ export function BudgetStatusGrid({
               </div>
 
               <p className="text-xs text-muted">
-                of {formatCurrency(budget.amount, currency)}
+                of {formatCurrency(budget.amount, currency, locale)}
               </p>
             </div>
           );

@@ -8,11 +8,13 @@ import type { Transaction } from "@/lib/stores/transactionStore";
 type RecentTransactionsProps = {
   transactions: Transaction[];
   currency?: string;
+  locale?: string;
 };
 
 export function RecentTransactions({
   transactions,
   currency = "USD",
+  locale = "en-US",
 }: RecentTransactionsProps) {
   if (transactions.length === 0) {
     return (
@@ -84,7 +86,7 @@ export function RecentTransactions({
                 )}
               >
                 {isExpense ? "−" : "+"}
-                {formatCurrency(tx.amount, currency)}
+                {formatCurrency(tx.amount, currency, locale)}
               </span>
             </div>
           );
