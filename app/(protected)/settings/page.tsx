@@ -14,6 +14,7 @@ import { Controller } from "react-hook-form";
 const settingsSchema = z.object({
   name: z.string().min(1, "Name is required").max(80),
   currency: z.string().length(3, "Must be a 3-letter code"),
+  locale: z.string().min(1, "Locale is required"),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -44,6 +45,27 @@ const CURRENCIES = [
   { code: "SAR", label: "Saudi Riyal (SAR)" },
   { code: "NGN", label: "Nigerian Naira (NGN)" },
   { code: "EGP", label: "Egyptian Pound (EGP)" },
+];
+
+const LOCALES = [
+  { code: "en-US", label: "English (US)" },
+  { code: "en-GB", label: "English (UK)" },
+  { code: "de-DE", label: "German (Germany)" },
+  { code: "fr-FR", label: "French (France)" },
+  { code: "es-ES", label: "Spanish (Spain)" },
+  { code: "es-MX", label: "Spanish (Mexico)" },
+  { code: "pt-BR", label: "Portuguese (Brazil)" },
+  { code: "ja-JP", label: "Japanese (Japan)" },
+  { code: "zh-CN", label: "Chinese Simplified" },
+  { code: "zh-TW", label: "Chinese Traditional" },
+  { code: "ko-KR", label: "Korean (Korea)" },
+  { code: "ar-SA", label: "Arabic (Saudi Arabia)" },
+  { code: "tr-TR", label: "Turkish (Turkey)" },
+  { code: "id-ID", label: "Indonesian" },
+  { code: "ms-MY", label: "Malay (Malaysia)" },
+  { code: "th-TH", label: "Thai (Thailand)" },
+  { code: "vi-VN", label: "Vietnamese (Vietnam)" },
+  { code: "hi-IN", label: "Hindi (India)" },
 ];
 
 function SectionHeader({
@@ -81,7 +103,7 @@ export default function SettingsPage() {
     formState: { errors, isSubmitting, isDirty },
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
-    defaultValues: { name: "", currency: "USD" },
+    defaultValues: { name: "", currency: "USD", locale: "en-US" },
   });
 
   useEffect(() => {
@@ -91,6 +113,7 @@ export default function SettingsPage() {
         reset({
           name: data.name ?? clerkUser?.fullName ?? "",
           currency: data.currency ?? "USD",
+          locale: data.locale ?? "en-US",
         });
       })
       .finally(() => setIsFetching(false));
@@ -218,7 +241,7 @@ export default function SettingsPage() {
           <SectionHeader
             icon={Palette}
             title="Preferences"
-            description="Currency used across the app for formatting and display"
+            description="Currency and locale used across the app for formatting and display"
           />
 
           <div className="space-y-4">
@@ -249,6 +272,38 @@ export default function SettingsPage() {
                   {errors.currency.message}
                 </p>
               )}
+            </div>
+
+            {/* Locale */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Number format / locale
+              </label>
+              <Controller
+                name="locale"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Select locale"
+                  >
+                    {LOCALES.map((l) => (
+                      <SelectItem key={l.code} value={l.code}>
+                        {l.label}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                )}
+              />
+              {errors.locale && (
+                <p className="mt-1 text-xs text-danger">
+                  {errors.locale.message}
+                </p>
+              )}
+              <p className="text-xs text-muted mt-1">
+                Controls how numbers and currency symbols are formatted
+              </p>
             </div>
           </div>
         </div>
