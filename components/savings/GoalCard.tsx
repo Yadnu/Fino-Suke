@@ -2,6 +2,7 @@
 
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { formatCurrency, formatDate, clampPercent, cn } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 import type { SavingsGoal } from "@/lib/stores/savingsStore";
 
 const RADIUS = 40;
@@ -17,6 +18,7 @@ type GoalCardProps = {
 };
 
 export function GoalCard({ goal, onEdit, onDelete, onDeposit }: GoalCardProps) {
+  const { currency, locale } = useUserSettings();
   const percent = clampPercent(
     goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0
   );
@@ -115,10 +117,10 @@ export function GoalCard({ goal, onEdit, onDelete, onDeposit }: GoalCardProps) {
 
           <div className="mt-2 flex items-baseline gap-1.5">
             <span className="text-sm font-semibold text-foreground">
-              {formatCurrency(goal.currentAmount)}
+              {formatCurrency(goal.currentAmount, currency, locale)}
             </span>
             <span className="text-xs text-muted">
-              / {formatCurrency(goal.targetAmount)}
+              / {formatCurrency(goal.targetAmount, currency, locale)}
             </span>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { Pencil, Trash2 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 import type { NetWorthAccount } from "@/lib/stores/networthStore";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -36,6 +37,7 @@ type Props = {
 };
 
 export function AccountCard({ account, currency = "USD", onEdit, onDelete }: Props) {
+  const { locale } = useUserSettings();
   const isAsset = account.type === "asset";
 
   return (
@@ -63,7 +65,7 @@ export function AccountCard({ account, currency = "USD", onEdit, onDelete }: Pro
           isAsset ? "text-success" : "text-danger"
         )}
       >
-        {formatCurrency(account.value, currency)}
+        {formatCurrency(account.value, currency, locale)}
       </p>
 
       {/* Actions */}

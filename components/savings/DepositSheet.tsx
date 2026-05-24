@@ -7,6 +7,7 @@ import { Loader2, TrendingUp } from "lucide-react";
 import { depositSchema, type DepositInput } from "@/lib/validations";
 import { useSavingsStore, type SavingsGoal } from "@/lib/stores/savingsStore";
 import { formatCurrency, clampPercent } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 import { Sheet, SheetContent } from "@/components/ui/Sheet";
 
 type DepositSheetProps = {
@@ -16,6 +17,7 @@ type DepositSheetProps = {
 };
 
 export function DepositSheet({ goal, open, onOpenChange }: DepositSheetProps) {
+  const { currency, locale } = useUserSettings();
   const { updateGoal } = useSavingsStore();
 
   const {
@@ -54,7 +56,7 @@ export function DepositSheet({ goal, open, onOpenChange }: DepositSheetProps) {
       toast.success(
         result.isCompleted
           ? "🎉 Goal completed! Congratulations!"
-          : `Added ${formatCurrency(data.amount)} to ${goal.name}`
+          : `Added ${formatCurrency(data.amount, currency, locale)} to ${goal.name}`
       );
       reset();
       onOpenChange(false);
@@ -78,7 +80,7 @@ export function DepositSheet({ goal, open, onOpenChange }: DepositSheetProps) {
                 <div>
                   <p className="text-sm font-semibold text-foreground">{goal.name}</p>
                   <p className="text-xs text-muted">
-                    {formatCurrency(goal.currentAmount)} of {formatCurrency(goal.targetAmount)}
+                    {formatCurrency(goal.currentAmount, currency, locale)} of {formatCurrency(goal.targetAmount, currency, locale)}
                   </p>
                 </div>
               </div>

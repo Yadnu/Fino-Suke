@@ -14,6 +14,7 @@ import {
   billDaysUntilDue,
   cn,
 } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 import type { Bill } from "@/lib/stores/billStore";
 
 type BillCardProps = {
@@ -29,6 +30,7 @@ export function BillCard({
   onDelete,
   onMarkPaid,
 }: BillCardProps) {
+  const { currency, locale } = useUserSettings();
   const [marking, setMarking] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -116,7 +118,7 @@ export function BillCard({
         </div>
         <div className="text-right shrink-0">
           <p className="text-sm font-bold text-foreground">
-            {formatCurrency(bill.amount)}
+            {formatCurrency(bill.amount, currency, locale)}
           </p>
           <p
             className={cn(

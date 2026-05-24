@@ -10,6 +10,7 @@ import {
   Legend,
 } from "recharts";
 import { formatCurrency, formatCompactCurrency } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 import type { NetWorthHistoryItem } from "@/lib/networth";
 
 function CustomTooltip({
@@ -17,11 +18,13 @@ function CustomTooltip({
   payload,
   label,
   currency,
+  locale,
 }: {
   active?: boolean;
   payload?: Array<{ name: string; value: number; color: string }>;
   label?: string;
   currency?: string;
+  locale?: string;
 }) {
   if (!active || !payload?.length) return null;
   return (
@@ -31,7 +34,7 @@ function CustomTooltip({
         <p key={p.name} className="text-muted">
           {p.name}:{" "}
           <span className="font-medium" style={{ color: p.color }}>
-            {formatCurrency(p.value, currency)}
+            {formatCurrency(p.value, currency, locale)}
           </span>
         </p>
       ))}
@@ -45,6 +48,7 @@ type Props = {
 };
 
 export function NetWorthTrendChart({ history, currency = "USD" }: Props) {
+  const { locale } = useUserSettings();
   if (history.length < 2) {
     return (
       <div className="flex items-center justify-center h-40 text-sm text-muted">
@@ -73,10 +77,10 @@ export function NetWorthTrendChart({ history, currency = "USD" }: Props) {
           tick={{ fontSize: 11, fill: "#71717a" }}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(v) => formatCompactCurrency(v, currency)}
+          tickFormatter={(v) => formatCompactCurrency(v, currency, locale)}
           width={64}
         />
-        <Tooltip content={<CustomTooltip currency={currency} />} />
+        <Tooltip content={<CustomTooltip currency={currency} locale={locale} />} />
         <Legend
           wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
           formatter={(value) => <span style={{ color: "#a1a1aa" }}>{value}</span>}

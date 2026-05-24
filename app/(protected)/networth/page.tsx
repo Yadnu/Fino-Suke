@@ -13,33 +13,28 @@ import {
   type NetWorthAccount,
 } from "@/lib/stores/networthStore";
 import { formatCurrency, cn } from "@/lib/utils";
+import { useUserSettings } from "@/lib/context/UserSettingsContext";
 import type { NetWorthHistoryItem, NetWorthTotals } from "@/lib/networth";
 
 export default function NetWorthPage() {
+  const { currency, locale } = useUserSettings();
   const { accounts, totals, history, isLoading, setData, removeAccount, setLoading } =
     useNetWorthStore();
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<NetWorthAccount | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [currency, setCurrency] = useState("USD");
 
   const fetchSummary = useCallback(async () => {
     setLoading(true);
     try {
-      const [summaryRes, settingsRes] = await Promise.all([
-        fetch("/api/networth/summary"),
-        fetch("/api/settings"),
-      ]);
-      const summary = await summaryRes.json();
-      const settings = await settingsRes.json();
-
+      const res = await fetch("/api/networth/summary");
+      const summary = await res.json();
       setData(
         summary.accounts ?? [],
         summary.totals ?? { totalAssets: 0, totalLiabilities: 0, netWorth: 0 },
         summary.history ?? []
       );
-      if (settings.currency) setCurrency(settings.currency);
     } finally {
       setLoading(false);
     }
@@ -120,19 +115,19 @@ export default function NetWorthPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           label="Total Assets"
-          value={formatCurrency(totals.totalAssets, currency)}
+          value={formatCurrency(totals.totalAssets, currency, locale)}
           colorClass="text-success"
           loading={isLoading}
         />
         <StatCard
           label="Total Liabilities"
-          value={formatCurrency(totals.totalLiabilities, currency)}
+          value={formatCurrency(totals.totalLiabilities, currency, locale)}
           colorClass="text-danger"
           loading={isLoading}
         />
         <StatCard
           label="Net Worth"
-          value={formatCurrency(totals.netWorth, currency)}
+          value={formatCurrency(totals.netWorth, currency, locale)}
           colorClass={totals.netWorth >= 0 ? "text-gold" : "text-danger"}
           loading={isLoading}
           highlighted
