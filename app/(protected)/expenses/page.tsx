@@ -143,7 +143,21 @@ export default function ExpensesPage() {
             {total} transaction{total !== 1 ? "s" : ""} total
           </p>
         </div>
-        <Sheet open={sheetOpen} onOpenChange={(v) => { setSheetOpen(v); if (!v) setEditingTx(null); }}>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            title="Export transactions as CSV"
+            className="flex items-center gap-2 border border-border text-muted hover:text-foreground hover:border-foreground/40 text-sm py-2 px-3.5 rounded-md transition-colors disabled:opacity-50"
+          >
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            Export CSV
+          </button>
+          <Sheet open={sheetOpen} onOpenChange={(v) => { setSheetOpen(v); if (!v) setEditingTx(null); }}>
           <SheetTrigger asChild>
             <button className="flex items-center gap-2 bg-gold text-background font-semibold text-sm py-2 px-4 rounded-md hover:bg-gold-hover transition-colors">
               <Plus className="w-4 h-4" />
@@ -166,7 +180,8 @@ export default function ExpensesPage() {
               }}
             />
           </SheetContent>
-        </Sheet>
+          </Sheet>
+        </div>
       </div>
 
       {/* Filters */}
