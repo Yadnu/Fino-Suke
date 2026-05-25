@@ -11,6 +11,7 @@ import {
   Trash2,
   Loader2,
   X,
+  Download,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/Sheet";
 import {
@@ -52,6 +53,7 @@ export default function ExpensesPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"" | "expense" | "income">("");
+  const [isExporting, setIsExporting] = useState(false);
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -98,6 +100,32 @@ export default function ExpensesPage() {
     } finally {
       setDeletingId(null);
       setConfirmDeleteId(null);
+    }
+  }
+
+  async function handleExport() {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (typeFilter) params.set("type", typeFilter);
+      const res = await fetch(`/api/transactions/export?${params}`);
+      if (!res.ok) {
+        toast.error("Export failed");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const disposition = res.headers.get("Content-Disposition") ?? "";
+      const match = disposition.match(/filename="(.+?)"/);
+      a.download = match?.[1] ?? "transactions.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Export failed");
+    } finally {
+      setIsExporting(false);
     }
   }
 
