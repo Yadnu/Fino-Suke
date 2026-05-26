@@ -12,6 +12,7 @@ import {
   Loader2,
   X,
   Download,
+  Upload,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/Sheet";
 import {
@@ -20,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/Dialog";
 import { TransactionForm } from "@/components/forms/TransactionForm";
+import { CsvImportSheet } from "@/components/forms/CsvImportSheet";
 import { SkeletonTransactionRow } from "@/components/ui/SkeletonCard";
 import {
   useTransactionStore,
@@ -54,6 +56,7 @@ export default function ExpensesPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"" | "expense" | "income">("");
   const [isExporting, setIsExporting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -144,6 +147,14 @@ export default function ExpensesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setImportOpen(true)}
+            title="Import transactions from CSV"
+            className="flex items-center gap-2 border border-border text-muted hover:text-foreground hover:border-foreground/40 text-sm py-2 px-3.5 rounded-md transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            Import CSV
+          </button>
           <button
             onClick={handleExport}
             disabled={isExporting}
@@ -353,6 +364,15 @@ export default function ExpensesPage() {
           ))}
         </div>
       )}
+
+      <CsvImportSheet
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={() => {
+          fetchTransactions();
+          router.refresh();
+        }}
+      />
     </div>
   );
 }
