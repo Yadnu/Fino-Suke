@@ -22,10 +22,34 @@ export const metadata: Metadata = {
   title: "Finosuke — Personal Finance",
   description:
     "A modern, intelligent personal finance app built with precision and clarity.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Finosuke",
+    startupImage: "/apple-touch-icon.png",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
   themeColor: "#0f0f11",
+  width: "device-width",
+  initialScale: 1,
+  minimumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

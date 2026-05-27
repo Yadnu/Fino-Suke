@@ -1,0 +1,57 @@
+{
+  "name": "Finosuke — Personal Finance",
+  "short_name": "Finosuke",
+  "description": "A modern, intelligent personal finance app built with precision and clarity.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f0f11",
+  "theme_color": "#0f0f11",
+  "lang": "en",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your financial dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Expenses",
+      "short_name": "Expenses",
+      "description": "Track your expenses",
+      "url": "/expenses",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Budget",
+      "short_name": "Budget",
+      "description": "Manage your budgets",
+      "url": "/budget",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
