@@ -8,6 +8,7 @@ import {
   PieChart,
   Wallet,
   BarChart3,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ const MOBILE_NAV = [
   { href: "/budget", icon: PieChart, label: "Budget" },
   { href: "/income", icon: Wallet, label: "Income" },
   { href: "/analytics", icon: BarChart3, label: "Analytics" },
+  { href: "/networth", icon: TrendingUp, label: "Net Worth" },
 ];
 
 export function MobileNav() {

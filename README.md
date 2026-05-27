@@ -69,17 +69,17 @@ Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to 
 /settings         Account preferences
 ```
 
-Phase 2 routes above are live. Remaining roadmap items are labeled by phase below.
+All routes above are live. Remaining roadmap items are labeled by phase below.
 
 ## Development Phases
 
-| Phase | Features |
-|-------|----------|
-| Phase 1 | Auth, Expense Tracking, Budget Planning, Dashboard |
-| Phase 2 | Income, Bills, Savings Goals, Analytics, Settings |
-| Phase 3 | AI Assistant (Q&A + write actions), Net Worth Tracker |
-| **Phase 4 (current)** | Multi-currency, PWA, CSV Import/Export |
-| Phase 5 | Bank Sync (Plaid), Advanced AI |
+| Phase | Features | Status |
+|-------|----------|--------|
+| Phase 1 | Auth, Expense Tracking, Budget Planning, Dashboard | ✅ Complete |
+| Phase 2 | Income, Bills, Savings Goals, Analytics, Settings | ✅ Complete |
+| Phase 3 | AI Assistant (Q&A + write actions), Net Worth Tracker | ✅ Complete |
+| **Phase 4 (current)** | Multi-currency (~40%), PWA (~50%), CSV Import/Export (✅) | 🔄 In Progress |
+| Phase 5 | Bank Sync (Plaid), Advanced AI | — |
 
 ## Design System
 
