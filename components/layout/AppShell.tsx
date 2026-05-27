@@ -1,6 +1,7 @@
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { MobileNav } from "./MobileNav";
+import { InstallPrompt } from "./InstallPrompt";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -20,6 +21,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom nav */}
       <MobileNav />
+
+      {/* PWA install prompt */}
+      <InstallPrompt />
     </div>
   );
 }
