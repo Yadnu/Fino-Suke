@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finosuke — Offline</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0f0f11;
+        color: #f4f4f5;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 2rem;
+        gap: 1.25rem;
+      }
+
+      .icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 18px;
+        background: #1a1a1f;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+      }
+
+      h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      p {
+        font-size: 0.9rem;
+        color: #71717a;
+        max-width: 22rem;
+        line-height: 1.6;
+      }
+
+      button {
+        margin-top: 0.5rem;
+        background: #f5c842;
+        color: #0f0f11;
+        border: none;
+        border-radius: 10px;
+        padding: 0.65rem 1.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+
+      button:hover { opacity: 0.88; }
+    </style>
+  </head>
+  <body>
+    <div class="icon">📶</div>
+    <h1>You're offline</h1>
+    <p>Finosuke needs an internet connection to load your financial data. Please check your connection and try again.</p>
+    <button onclick="location.reload()">Try again</button>
+  </body>
+</html>
