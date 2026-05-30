@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Plus, Loader2, TrendingUp } from "lucide-react";
+import { Plus, TrendingUp } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/Sheet";
 import { AccountCard } from "@/components/networth/AccountCard";
 import { NetWorthTrendChart } from "@/components/networth/NetWorthTrendChart";
@@ -14,7 +14,6 @@ import {
 } from "@/lib/stores/networthStore";
 import { formatCurrency, cn } from "@/lib/utils";
 import { useUserSettings } from "@/lib/context/UserSettingsContext";
-import type { NetWorthHistoryItem, NetWorthTotals } from "@/lib/networth";
 
 export default function NetWorthPage() {
   const { currency, locale } = useUserSettings();
@@ -62,7 +61,7 @@ export default function NetWorthPage() {
     }
   }
 
-  function handleSuccess(account: NetWorthAccount) {
+  function handleSuccess() {
     setSheetOpen(false);
     setEditingAccount(null);
     fetchSummary();

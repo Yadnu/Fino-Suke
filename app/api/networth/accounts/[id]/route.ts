@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { netWorthAccountSchema, netWorthAccountPatchSchema } from "@/lib/validations";
+import { netWorthAccountPatchSchema } from "@/lib/validations";
 import { rateLimit } from "@/lib/rateLimit";
 import { upsertCurrentMonthSnapshot } from "@/lib/networth";
 
