@@ -10,7 +10,6 @@ import {
   Check,
   AlertCircle,
   Loader2,
-  X,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/Sheet";
 import { cn } from "@/lib/utils";
@@ -332,7 +331,7 @@ export function CsvImportSheet({ open, onOpenChange, onImported }: Props) {
               <p className="font-semibold text-foreground mb-2">Expected columns</p>
               <p><span className="text-foreground font-medium">Required:</span> date, type (expense/income), amount</p>
               <p><span className="text-foreground font-medium">Optional:</span> category, notes, tags (semicolon-separated), recurring (yes/no)</p>
-              <p className="mt-2 pt-2 border-t border-border">Column headers can be in any order — you'll map them in the next step.</p>
+              <p className="mt-2 pt-2 border-t border-border">Column headers can be in any order — you&apos;ll map them in the next step.</p>
             </div>
           </div>
         )}

@@ -31,7 +31,7 @@ import {
   useTransactionStore,
   type Transaction,
 } from "@/lib/stores/transactionStore";
-import { formatCurrency, formatCompactCurrency, formatDate, cn } from "@/lib/utils";
+import { formatCurrency, formatCompactCurrency, formatDate } from "@/lib/utils";
 import { useUserSettings } from "@/lib/context/UserSettingsContext";
 import { Badge } from "@/components/ui/Badge";
 
