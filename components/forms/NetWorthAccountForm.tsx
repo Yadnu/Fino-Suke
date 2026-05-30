@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { type Resolver, useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
@@ -40,7 +40,7 @@ export function NetWorthAccountForm({ editingAccount, onSuccess }: Props) {
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<NetWorthAccountInput>({
-    resolver: zodResolver(netWorthAccountSchema),
+    resolver: zodResolver(netWorthAccountSchema) as Resolver<NetWorthAccountInput>,
     defaultValues: editingAccount
       ? {
           name: editingAccount.name,

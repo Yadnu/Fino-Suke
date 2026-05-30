@@ -75,7 +75,7 @@ const rowSchema = z.object({
     .positive("Amount must be positive")
     .max(1_000_000, "Amount too large"),
   type: z.enum(["expense", "income"], {
-    errorMap: () => ({ message: 'Type must be "expense" or "income"' }),
+    message: 'Type must be "expense" or "income"',
   }),
   date: z.string().refine((v) => !isNaN(Date.parse(v)), "Invalid date"),
   notes: z.string().max(500).optional().nullable(),
@@ -153,9 +153,9 @@ export async function POST(req: Request) {
     // Verify all required columns exist in the header
     const requiredFields: (keyof ColumnMap)[] = ["date", "type", "amount"];
     for (const field of requiredFields) {
-      if (!headers.includes(columnMap[field])) {
+      if (!headers.includes(columnMap[field]!)) {
         return NextResponse.json(
-          { error: `Column "${columnMap[field]}" not found in CSV` },
+          { error: `Column "${columnMap[field]!}" not found in CSV` },
           { status: 400 }
         );
       }
@@ -234,7 +234,7 @@ export async function POST(req: Request) {
       // Bust analytics cache for affected months
       try {
         await Promise.all(
-          [...affectedMonths].map((m) => redis.del(`analytics:${userId}:${m}`))
+          Array.from(affectedMonths).map((m) => redis.del(`analytics:${userId}:${m}`))
         );
       } catch {
         // silent fail
