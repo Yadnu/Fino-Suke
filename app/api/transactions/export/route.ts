@@ -3,6 +3,8 @@ import prisma from "@/lib/db";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 
+export const dynamic = "force-dynamic";
+
 function escapeCsv(value: string | number | boolean | null | undefined): string {
   if (value === null || value === undefined) return "";
   const str = String(value);
