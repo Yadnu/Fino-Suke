@@ -3,12 +3,16 @@ import { Header } from "./Header";
 import { MobileNav } from "./MobileNav";
 import { InstallPrompt } from "./InstallPrompt";
 import { OfflineBanner } from "./OfflineBanner";
+import { SwUpdateBanner } from "./SwUpdateBanner";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       {/* Offline connectivity banner */}
       <OfflineBanner />
+
+      {/* SW update notification */}
+      <SwUpdateBanner />
 
       {/* Desktop sidebar */}
       <div className="hidden md:block">
