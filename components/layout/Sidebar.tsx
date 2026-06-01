@@ -105,6 +105,22 @@ export function Sidebar() {
           Sign out
         </button>
       </div>
+
+      {/* Developer credit */}
+      <div className="px-4 py-3.5 border-t border-border/40">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span className="text-[10px] text-muted/50 tracking-widest uppercase font-medium">
+            crafted by
+          </span>
+          <span className="text-[11px] font-bold text-gold tracking-wide">
+            Yadneya
+          </span>
+          <span className="text-gold/40 text-[9px] animate-pulse">✦</span>
+        </div>
+        <p className="text-[9px] text-muted/35 tracking-widest uppercase">
+          © 2026 · All rights reserved
+        </p>
+      </div>
     </aside>
   );
 }
