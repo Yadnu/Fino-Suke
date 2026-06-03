@@ -8,6 +8,7 @@ import { Loader2, RefreshCw } from "lucide-react";
 import { transactionSchema, type TransactionInput } from "@/lib/validations";
 import { Select, SelectItem } from "@/components/ui/Select";
 import { useTransactionStore } from "@/lib/stores/transactionStore";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
 import { formatDate } from "@/lib/utils";
 
 type Category = {
@@ -40,6 +41,7 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const { addTransaction, updateTransaction } = useTransactionStore();
+  const { mutate } = useOfflineMutation();
   const isEditing = !!(editingTransaction?.id);
 
   const {
@@ -82,7 +84,7 @@ export function TransactionForm({
         : "/api/transactions";
       const method = isEditing ? "PATCH" : "POST";
 
-      const res = await fetch(url, {
+      const res = await mutate(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -90,12 +92,31 @@ export function TransactionForm({
 
       const result = await res.json();
 
+      // Queued for background sync while offline.
+      if (res.status === 202 && result.queued) {
+        if (isEditing) {
+          // Optimistically apply the edited fields; category stays unchanged.
+          updateTransaction(editingTransaction!.id, {
+            amount: data.amount,
+            type: data.type,
+            categoryId: data.categoryId ?? null,
+            date: data.date,
+            notes: data.notes ?? null,
+            tags: data.tags ?? [],
+            isRecurring: data.isRecurring ?? false,
+          });
+        }
+        toast("Saved offline — will sync when connected", { icon: "📶" });
+        reset();
+        onSuccess();
+        return;
+      }
+
       if (!res.ok) {
         toast.error(result.error ?? "Failed to save transaction");
         return;
       }
 
-      // Optimistic update
       const serialized = {
         ...result,
         date: result.date,

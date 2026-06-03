@@ -33,6 +33,7 @@ import {
 } from "@/lib/stores/transactionStore";
 import { formatCurrency, formatCompactCurrency, formatDate } from "@/lib/utils";
 import { useUserSettings } from "@/lib/context/UserSettingsContext";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
 import { Badge } from "@/components/ui/Badge";
 
 type TrendPoint = {
@@ -96,6 +97,7 @@ export default function IncomePage() {
     setLoading,
   } = useTransactionStore();
 
+  const { mutate } = useOfflineMutation();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -136,10 +138,13 @@ export default function IncomePage() {
     setDeletingId(id);
     removeTransaction(id);
     try {
-      const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
-      if (!res.ok) {
+      const res = await mutate(`/api/transactions/${id}`, { method: "DELETE" });
+      const result = await res.json().catch(() => ({})) as { queued?: boolean };
+      if (res.status === 202 && result.queued) {
+        toast("Delete queued — will sync when connected", { icon: "📶" });
+      } else if (!res.ok) {
         toast.error("Failed to delete income entry");
-        fetchTransactions();
+        fetchTransactions(); // revert optimistic removal
       } else {
         toast.success("Income entry deleted");
         router.refresh();

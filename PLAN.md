@@ -5,7 +5,7 @@
 | Area | Done so far | Remaining |
 |------|-------------|-----------|
 | CSV Import/Export | ✅ Complete | — |
-| PWA | SW caching, offline fallback, install prompt, push notifications | SW update banner ✅, background sync |
+| PWA | SW caching, offline fallback, install prompt, push notifications | SW update banner ✅, background sync ✅ |
 | Multi-currency | Settings UI, UserSettingsContext, formatCurrency helpers, pages wired to useUserSettings | Exchange rate API, per-transaction currency field, conversion in analytics/dashboard |
 
 ---
@@ -17,7 +17,7 @@
 - `worker/index.ts` — handles `SKIP_WAITING` message to activate the new SW
 - `components/layout/AppShell.tsx` — renders `<SwUpdateBanner />`
 
-### ⬜ Background sync for offline mutations
+### ✅ Background sync for offline mutations
 - `lib/offlineQueue.ts` — IndexedDB helper: `enqueue(request)`, `dequeue()`, `getAll()`
 - `worker/index.ts` — register `sync` tag `finosuke-mutations`; on `sync` event drain the queue and replay each stored request
 - `hooks/useOfflineMutation.ts` — wraps `fetch` so failed writes (no network) are persisted to IndexedDB and a sync is registered; exposes `pendingCount`
