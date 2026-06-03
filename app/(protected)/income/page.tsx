@@ -87,7 +87,7 @@ function CustomTooltip({
 
 export default function IncomePage() {
   const router = useRouter();
-  const { currency, locale } = useUserSettings();
+  const { settings: { currency, locale } } = useUserSettings();
   const {
     transactions,
     total,

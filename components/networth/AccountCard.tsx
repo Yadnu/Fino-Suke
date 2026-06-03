@@ -37,7 +37,7 @@ type Props = {
 };
 
 export function AccountCard({ account, currency = "USD", onEdit, onDelete }: Props) {
-  const { locale } = useUserSettings();
+  const { settings: { locale } } = useUserSettings();
   const isAsset = account.type === "asset";
 
   return (

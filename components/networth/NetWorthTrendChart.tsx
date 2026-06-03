@@ -48,7 +48,7 @@ type Props = {
 };
 
 export function NetWorthTrendChart({ history, currency = "USD" }: Props) {
-  const { locale } = useUserSettings();
+  const { settings: { locale } } = useUserSettings();
   if (history.length < 2) {
     return (
       <div className="flex items-center justify-center h-40 text-sm text-muted">

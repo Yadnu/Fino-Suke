@@ -17,7 +17,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useUserSettings } from "@/lib/context/UserSettingsContext";
 
 export default function SavingsPage() {
-  const { currency, locale } = useUserSettings();
+  const { settings: { currency, locale } } = useUserSettings();
   const { goals, isLoading, setGoals, removeGoal, setLoading } =
     useSavingsStore();
 

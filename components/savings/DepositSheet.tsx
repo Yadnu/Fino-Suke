@@ -17,7 +17,7 @@ type DepositSheetProps = {
 };
 
 export function DepositSheet({ goal, open, onOpenChange }: DepositSheetProps) {
-  const { currency, locale } = useUserSettings();
+  const { settings: { currency, locale } } = useUserSettings();
   const { updateGoal } = useSavingsStore();
 
   const {

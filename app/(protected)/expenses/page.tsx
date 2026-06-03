@@ -40,7 +40,7 @@ const TYPE_LABELS = { expense: "Expense", income: "Income" };
 
 export default function ExpensesPage() {
   const router = useRouter();
-  const { currency, locale } = useUserSettings();
+  const { settings: { currency, locale } } = useUserSettings();
   const {
     transactions,
     total,

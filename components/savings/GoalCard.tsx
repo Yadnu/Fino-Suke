@@ -18,7 +18,7 @@ type GoalCardProps = {
 };
 
 export function GoalCard({ goal, onEdit, onDelete, onDeposit }: GoalCardProps) {
-  const { currency, locale } = useUserSettings();
+  const { settings: { currency, locale } } = useUserSettings();
   const percent = clampPercent(
     goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0
   );

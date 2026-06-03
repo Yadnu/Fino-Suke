@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/Badge";
 
 export default function BudgetPage() {
   const router = useRouter();
-  const { currency, locale } = useUserSettings();
+  const { settings: { currency, locale } } = useUserSettings();
   const { budgets, isLoading, setBudgets, removeBudget, setLoading } =
     useBudgetStore();
   const [sheetOpen, setSheetOpen] = useState(false);

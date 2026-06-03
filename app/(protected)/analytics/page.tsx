@@ -126,7 +126,7 @@ function CustomBarTooltip({
 }
 
 export default function AnalyticsPage() {
-  const { currency, locale } = useUserSettings();
+  const { settings: { currency, locale } } = useUserSettings();
   const [month, setMonth] = useState(getMonthKey());
   const [data, setData] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);

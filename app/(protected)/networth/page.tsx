@@ -16,7 +16,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { useUserSettings } from "@/lib/context/UserSettingsContext";
 
 export default function NetWorthPage() {
-  const { currency, locale } = useUserSettings();
+  const { settings: { currency, locale } } = useUserSettings();
   const { accounts, totals, history, isLoading, setData, removeAccount, setLoading } =
     useNetWorthStore();
 

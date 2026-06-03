@@ -30,7 +30,7 @@ export function BillCard({
   onDelete,
   onMarkPaid,
 }: BillCardProps) {
-  const { currency, locale } = useUserSettings();
+  const { settings: { currency, locale } } = useUserSettings();
   const [marking, setMarking] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);

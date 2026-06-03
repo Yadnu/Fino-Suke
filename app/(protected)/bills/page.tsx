@@ -49,7 +49,7 @@ function normalizeBill(raw: Record<string, unknown>): Bill {
 }
 
 export default function BillsPage() {
-  const { currency, locale } = useUserSettings();
+  const { settings: { currency, locale } } = useUserSettings();
   const {
     bills,
     isLoading,
