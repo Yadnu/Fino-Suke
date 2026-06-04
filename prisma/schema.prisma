@@ -27,6 +27,8 @@ model User {
   pushSubscriptions  PushSubscription[]
   netWorthAccounts   NetWorthAccount[]
   netWorthSnapshots  NetWorthSnapshot[]
+  plaidItems         PlaidItem[]
+  plaidAccounts      PlaidAccount[]
 
   @@map("users")
 }
@@ -49,20 +51,22 @@ model Category {
 }
 
 model Transaction {
-  id          String    @id @default(cuid())
-  userId      String
-  amount      Float
-  type        String    @default("expense") // "expense" | "income"
-  categoryId  String?
-  category    Category? @relation(fields: [categoryId], references: [id])
-  date        DateTime
-  notes       String?
-  tags        String[]  @default([])
-  isRecurring Boolean   @default(false)
-  recurringId String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String    @id @default(cuid())
+  userId              String
+  amount              Float
+  type                String    @default("expense") // "expense" | "income"
+  categoryId          String?
+  category            Category? @relation(fields: [categoryId], references: [id])
+  date                DateTime
+  notes               String?
+  tags                String[]  @default([])
+  isRecurring         Boolean   @default(false)
+  recurringId         String?
+  currency            String    @default("USD")
+  plaidTransactionId  String?   @unique
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
   @@index([userId, type])
@@ -172,4 +176,41 @@ model NetWorthSnapshot {
   @@unique([userId, month])
   @@index([userId])
   @@map("net_worth_snapshots")
+}
+
+model PlaidItem {
+  id              String         @id @default(cuid())
+  userId          String
+  itemId          String         @unique
+  accessToken     String
+  institutionId   String?
+  institutionName String?
+  cursor          String?        // /transactions/sync pagination cursor
+  lastSyncedAt    DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accounts        PlaidAccount[]
+
+  @@index([userId])
+  @@map("plaid_items")
+}
+
+model PlaidAccount {
+  id           String     @id @default(cuid())
+  userId       String
+  plaidItemId  String
+  accountId    String     @unique
+  name         String
+  mask         String?
+  type         String
+  subtype      String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  plaidItem    PlaidItem  @relation(fields: [plaidItemId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([plaidItemId])
+  @@map("plaid_accounts")
 }
