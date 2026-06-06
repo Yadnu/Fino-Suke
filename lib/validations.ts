@@ -275,3 +275,13 @@ export const chatRequestSchema = z.object({
 });
 
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
+
+// ── Plaid ────────────────────────────────────────────────────────────────────
+
+export const plaidExchangeTokenSchema = z.object({
+  public_token: z.string().min(1, "public_token is required"),
+  institution_name: z.string().optional(),
+  institution_id: z.string().optional(),
+});
+
+export type PlaidExchangeTokenInput = z.infer<typeof plaidExchangeTokenSchema>;
