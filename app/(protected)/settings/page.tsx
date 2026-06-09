@@ -6,10 +6,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
-import { Loader2, User, Palette, Globe, Mail, Check } from "lucide-react";
+import { Loader2, User, Palette, Globe, Mail, Check, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectItem } from "@/components/ui/Select";
 import { Controller } from "react-hook-form";
+import { PlaidLinkButton } from "@/components/plaid/PlaidLinkButton";
+import { ConnectedAccountsList } from "@/components/plaid/ConnectedAccountsList";
 
 const settingsSchema = z.object({
   name: z.string().min(1, "Name is required").max(80),
@@ -94,6 +96,7 @@ export default function SettingsPage() {
   const { user: clerkUser } = useUser();
   const [isFetching, setIsFetching] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [bankRefreshKey, setBankRefreshKey] = useState(0);
 
   const {
     register,
@@ -361,6 +364,19 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Connected Banks */}
+      <div className="bg-surface border border-border rounded-lg p-6 mt-5">
+        <SectionHeader
+          icon={Building2}
+          title="Connected Banks"
+          description="Link your bank accounts to automatically import transactions via Plaid"
+        />
+        <div className="space-y-4">
+          <ConnectedAccountsList refreshKey={bankRefreshKey} />
+          <PlaidLinkButton onSuccess={() => setBankRefreshKey((k) => k + 1)} />
+        </div>
+      </div>
     </div>
   );
 }
