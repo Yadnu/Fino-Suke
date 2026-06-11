@@ -13,7 +13,7 @@ function getOpenAIClient(): OpenAI {
   return new OpenAI({ apiKey });
 }
 
-// ── User finance context ──────────────────────────────────────────────────────
+// ── User finance context (kept for /api/ai/insights) ─────────────────────────
 
 interface MonthlyTotals {
   income: number;
@@ -135,7 +135,6 @@ export async function buildUserContext(userId: string): Promise<UserFinanceConte
     }),
   ]);
 
-  // Aggregate current-month income/expense and per-category spend
   let income = 0;
   let expense = 0;
   const categoryExpenses: Record<string, number> = {};
@@ -211,96 +210,383 @@ export function truncateHistory(history: ChatHistoryItem[], maxTurns = 6): ChatH
   return history.slice(-maxItems);
 }
 
-// ── System prompt builder ─────────────────────────────────────────────────────
+// ── Tool definitions ──────────────────────────────────────────────────────────
 
-function buildSystemPrompt(ctx: UserFinanceContext): string {
-  const lines: string[] = [
-    `You are Fino, a helpful and concise personal finance assistant embedded in the Finosuke app.`,
-    `Today is ${new Date().toISOString().slice(0, 10)}. The user's currency is ${ctx.currency}.`,
-    ``,
-    `## Financial Snapshot — ${ctx.currentMonth}`,
-    `Income:    ${ctx.monthlyTotals.income} ${ctx.currency}`,
-    `Expenses:  ${ctx.monthlyTotals.expense} ${ctx.currency}`,
-    `Net saved: ${ctx.monthlyTotals.netSavings} ${ctx.currency}`,
-  ];
+const QUERY_TOOLS: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "get_spending_breakdown",
+      description:
+        "Get the user's spending (expenses) broken down by category for a given month. Use this to answer questions about spending patterns, top categories, or category comparisons.",
+      parameters: {
+        type: "object",
+        properties: {
+          month: {
+            type: "string",
+            description: "Month in YYYY-MM format. Omit to use the current month.",
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_budget_status",
+      description:
+        "Get the user's active budgets with actual spending vs the budget limit. Use this to answer questions about budget utilization, overspending, or remaining budget.",
+      parameters: {
+        type: "object",
+        properties: {
+          month: {
+            type: "string",
+            description: "Month in YYYY-MM format for monthly budgets. Omit to use current month.",
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_savings_progress",
+      description:
+        "Get all active savings goals with current progress, remaining amounts, and completion percentages.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_recent_transactions",
+      description:
+        "Get recent transactions with optional filters. Use this to answer questions about specific transactions, spending history, or income history.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Maximum number of transactions to return (default 10, max 30).",
+          },
+          type: {
+            type: "string",
+            enum: ["expense", "income"],
+            description: "Filter by transaction type.",
+          },
+          category: {
+            type: "string",
+            description: "Filter by category name (case-insensitive partial match).",
+          },
+        },
+        required: [],
+      },
+    },
+  },
+];
 
-  if (ctx.topExpenseCategories.length > 0) {
-    const cats = ctx.topExpenseCategories
-      .map((c) => `${c.category} (${c.total})`)
-      .join(", ");
-    lines.push(`Top expense categories: ${cats}`);
-  }
+const WRITE_TOOLS: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "create_transaction",
+      description:
+        "Propose creating a new income or expense transaction. Only call this when the user explicitly asks to add/log/record a transaction.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: {
+            type: "string",
+            description: "One-sentence description of what will be created (shown to user for confirmation).",
+          },
+          amount: { type: "number", description: "Positive amount." },
+          type: { type: "string", enum: ["expense", "income"] },
+          categoryId: { type: "string", description: "Category ID (optional)." },
+          date: { type: "string", description: "Date in YYYY-MM-DD format." },
+          notes: { type: "string", description: "Optional notes." },
+          tags: { type: "array", items: { type: "string" }, description: "Optional tags." },
+          isRecurring: { type: "boolean", description: "Whether this is a recurring transaction." },
+        },
+        required: ["summary", "amount", "type", "date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_budget",
+      description:
+        "Propose creating a new budget. Only call this when the user explicitly asks to create or set up a budget.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: {
+            type: "string",
+            description: "One-sentence description of what will be created (shown to user for confirmation).",
+          },
+          name: { type: "string", description: "Budget name." },
+          categoryId: { type: "string", description: "Category ID (optional)." },
+          amount: { type: "number", description: "Budget limit amount." },
+          period: { type: "string", enum: ["weekly", "monthly"], description: "Budget period." },
+          month: { type: "string", description: "Month in YYYY-MM format." },
+          rollover: { type: "boolean", description: "Whether unused budget rolls over." },
+        },
+        required: ["summary", "name", "amount", "period", "month"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_budget",
+      description:
+        "Propose updating an existing budget. Only call this when the user explicitly asks to update or change a budget.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: {
+            type: "string",
+            description: "One-sentence description of what will be updated (shown to user for confirmation).",
+          },
+          id: { type: "string", description: "Budget ID to update." },
+          name: { type: "string", description: "New name (optional)." },
+          amount: { type: "number", description: "New amount (optional)." },
+          period: { type: "string", enum: ["weekly", "monthly"], description: "New period (optional)." },
+          rollover: { type: "boolean", description: "New rollover setting (optional)." },
+        },
+        required: ["summary", "id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_savings_goal",
+      description:
+        "Propose creating a new savings goal. Only call this when the user explicitly asks to create or set up a savings goal.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: {
+            type: "string",
+            description: "One-sentence description of what will be created (shown to user for confirmation).",
+          },
+          name: { type: "string", description: "Goal name." },
+          description: { type: "string", description: "Optional description." },
+          targetAmount: { type: "number", description: "Target savings amount." },
+          currentAmount: { type: "number", description: "Starting amount already saved (default 0)." },
+          targetDate: { type: "string", description: "Target date in YYYY-MM-DD format (optional)." },
+          icon: { type: "string", description: "Emoji icon (default 🎯)." },
+          color: { type: "string", description: "Hex color like #f5c842." },
+        },
+        required: ["summary", "name", "targetAmount"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_bill",
+      description:
+        "Propose adding a new recurring bill. Only call this when the user explicitly asks to add or track a bill.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: {
+            type: "string",
+            description: "One-sentence description of what will be created (shown to user for confirmation).",
+          },
+          name: { type: "string", description: "Bill name." },
+          amount: { type: "number", description: "Bill amount." },
+          frequency: {
+            type: "string",
+            enum: ["monthly", "weekly", "yearly", "once"],
+            description: "How often the bill recurs.",
+          },
+          dueDay: {
+            type: "number",
+            description: "Day of month (1–31) the bill is due, or day of week (0–6) for weekly.",
+          },
+          categoryId: { type: "string", description: "Category ID (optional)." },
+          notes: { type: "string", description: "Optional notes." },
+        },
+        required: ["summary", "name", "amount", "frequency", "dueDay"],
+      },
+    },
+  },
+];
 
-  if (ctx.recentTransactions.length > 0) {
-    lines.push(``, `## Recent Transactions`);
-    for (const tx of ctx.recentTransactions) {
-      const cat = tx.category ? ` | ${tx.category}` : "";
-      const note = tx.notes ? ` | "${tx.notes}"` : "";
-      lines.push(`- ${tx.date} | ${tx.type} | ${tx.amount} ${ctx.currency}${cat}${note}`);
+const QUERY_TOOL_NAMES = new Set(QUERY_TOOLS.map((t) => t.function.name));
+const WRITE_TOOL_NAMES = new Set(WRITE_TOOLS.map((t) => t.function.name));
+
+// ── Query tool executor ───────────────────────────────────────────────────────
+
+async function executeQueryTool(
+  userId: string,
+  name: string,
+  args: Record<string, unknown>,
+  currency: string
+): Promise<string> {
+  const now = new Date();
+  const currentMonth = now.toISOString().slice(0, 7);
+
+  if (name === "get_spending_breakdown") {
+    const month = typeof args.month === "string" ? args.month : currentMonth;
+    const monthStart = new Date(`${month}-01T00:00:00.000Z`);
+    const [y, m] = month.split("-").map(Number);
+    const monthEnd = new Date(y, m, 0, 23, 59, 59, 999);
+
+    const transactions = await prisma.transaction.findMany({
+      where: { userId, type: "expense", date: { gte: monthStart, lte: monthEnd } },
+      select: { amount: true, category: { select: { name: true } } },
+    });
+
+    const byCategory: Record<string, number> = {};
+    let total = 0;
+    for (const tx of transactions) {
+      const cat = tx.category?.name ?? "Uncategorized";
+      byCategory[cat] = (byCategory[cat] ?? 0) + tx.amount;
+      total += tx.amount;
     }
+
+    const breakdown = Object.entries(byCategory)
+      .sort(([, a], [, b]) => b - a)
+      .map(([category, amount]) => ({
+        category,
+        amount: round2(amount),
+        percentage: total > 0 ? Math.round((amount / total) * 100) : 0,
+      }));
+
+    return JSON.stringify({ month, currency, totalExpenses: round2(total), breakdown });
   }
 
-  if (ctx.activeBudgets.length > 0) {
-    lines.push(``, `## Active Budgets`);
-    for (const b of ctx.activeBudgets) {
-      lines.push(`- ${b.name}: ${b.amount} ${ctx.currency} (${b.period}, ${b.month})`);
-    }
-  }
+  if (name === "get_budget_status") {
+    const month = typeof args.month === "string" ? args.month : currentMonth;
+    const monthStart = new Date(`${month}-01T00:00:00.000Z`);
+    const [y, m] = month.split("-").map(Number);
+    const monthEnd = new Date(y, m, 0, 23, 59, 59, 999);
 
-  if (ctx.savingsGoals.length > 0) {
-    lines.push(``, `## Savings Goals`);
-    for (const g of ctx.savingsGoals) {
-      lines.push(
-        `- ${g.name}: ${g.currentAmount}/${g.targetAmount} ${ctx.currency} (${g.progress}%)`
-      );
-    }
-  }
+    const budgets = await prisma.budget.findMany({
+      where: { userId },
+      include: { category: { select: { id: true, name: true } } },
+    });
 
-  if (ctx.activeBills.length > 0) {
-    lines.push(``, `## Recurring Bills`);
-    for (const b of ctx.activeBills) {
-      lines.push(`- ${b.name}: ${b.amount} ${ctx.currency} (${b.frequency}, due day ${b.dueDay})`);
-    }
-  }
+    const results = await Promise.all(
+      budgets.map(async (budget) => {
+        const periodStart = budget.period === "monthly" ? monthStart : new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+        const periodEnd = budget.period === "monthly" ? monthEnd : now;
 
-  if (ctx.netWorth) {
-    const nw = ctx.netWorth;
-    lines.push(
-      ``,
-      `## Net Worth`,
-      `Total assets:      ${nw.totalAssets} ${ctx.currency}`,
-      `Total liabilities: ${nw.totalLiabilities} ${ctx.currency}`,
-      `Net worth:         ${nw.netWorth} ${ctx.currency}`,
+        const spent = await prisma.transaction.aggregate({
+          where: {
+            userId,
+            type: "expense",
+            date: { gte: periodStart, lte: periodEnd },
+            ...(budget.categoryId ? { categoryId: budget.categoryId } : {}),
+          },
+          _sum: { amount: true },
+        });
+
+        const spentAmount = round2(spent._sum.amount ?? 0);
+        const remaining = round2(budget.amount - spentAmount);
+        const percentage = budget.amount > 0 ? Math.round((spentAmount / budget.amount) * 100) : 0;
+
+        return {
+          id: budget.id,
+          name: budget.name,
+          category: budget.category?.name ?? null,
+          budgetAmount: round2(budget.amount),
+          spentAmount,
+          remaining,
+          percentage,
+          period: budget.period,
+          month: budget.month,
+          isOverBudget: spentAmount > budget.amount,
+        };
+      })
     );
-    if (nw.topAssets.length > 0) {
-      lines.push(`Top assets: ${nw.topAssets.map((a) => `${a.name} (${a.value})`).join(", ")}`);
-    }
-    if (nw.topLiabilities.length > 0) {
-      lines.push(`Top liabilities: ${nw.topLiabilities.map((l) => `${l.name} (${l.value})`).join(", ")}`);
-    }
+
+    return JSON.stringify({ month, currency, budgets: results });
   }
 
-  lines.push(
-    ``,
-    `## Instructions`,
-    `Answer finance questions using the data above. Be concise (under 200 words).`,
-    ``,
-    `ONLY propose a write action when the user explicitly requests to create or update something.`,
-    `NEVER execute a write without the user's explicit confirmation payload.`,
-    ``,
-    `Always respond with valid JSON in exactly one of these shapes:`,
-    ``,
-    `Plain answer:`,
-    `{ "type": "answer", "content": "<your response>" }`,
-    ``,
-    `Proposing a write action:`,
-    `{ "type": "action", "summary": "<one sentence: what will be done>", "proposedAction": { "type": "<action_type>", "args": { ... } } }`,
-    ``,
-    `Allowed action types: create_transaction | create_budget | update_budget | create_savings_goal | create_bill.`,
-    `Never include multiple actions in one response. Always validate amounts are positive numbers.`
-  );
+  if (name === "get_savings_progress") {
+    const goals = await prisma.savingsGoal.findMany({
+      where: { userId, isCompleted: false },
+      orderBy: { createdAt: "desc" },
+    });
 
-  return lines.join("\n");
+    const result = goals.map((g) => ({
+      id: g.id,
+      name: g.name,
+      targetAmount: round2(g.targetAmount),
+      currentAmount: round2(g.currentAmount),
+      remaining: round2(g.targetAmount - g.currentAmount),
+      progress: g.targetAmount > 0 ? Math.round((g.currentAmount / g.targetAmount) * 100) : 0,
+      targetDate: g.targetDate ? g.targetDate.toISOString().slice(0, 10) : null,
+    }));
+
+    return JSON.stringify({ currency, goals: result });
+  }
+
+  if (name === "get_recent_transactions") {
+    const limit = Math.min(typeof args.limit === "number" ? args.limit : 10, 30);
+    const typeFilter = typeof args.type === "string" ? args.type : undefined;
+    const categoryFilter = typeof args.category === "string" ? args.category : undefined;
+
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        userId,
+        ...(typeFilter ? { type: typeFilter as "expense" | "income" } : {}),
+        ...(categoryFilter
+          ? { category: { name: { contains: categoryFilter, mode: "insensitive" } } }
+          : {}),
+      },
+      orderBy: { date: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        amount: true,
+        type: true,
+        date: true,
+        notes: true,
+        tags: true,
+        category: { select: { name: true } },
+      },
+    });
+
+    const result = transactions.map((tx) => ({
+      id: tx.id,
+      amount: round2(tx.amount),
+      type: tx.type,
+      category: tx.category?.name ?? null,
+      date: tx.date.toISOString().slice(0, 10),
+      notes: tx.notes,
+      tags: tx.tags,
+    }));
+
+    return JSON.stringify({ currency, transactions: result });
+  }
+
+  return JSON.stringify({ error: `Unknown query tool: ${name}` });
+}
+
+// ── System prompt ─────────────────────────────────────────────────────────────
+
+function buildSystemPrompt(currency: string): string {
+  return [
+    `You are Fino, a helpful and concise personal finance assistant embedded in the Finosuke app.`,
+    `Today is ${new Date().toISOString().slice(0, 10)}. The user's currency is ${currency}.`,
+    ``,
+    `Use the provided query tools to fetch the user's financial data before answering questions about their spending, budgets, savings, or transactions. Always fetch relevant data first — do not guess.`,
+    ``,
+    `ONLY propose a write action (create_transaction, create_budget, etc.) when the user explicitly asks to create or update something. Never propose a write without the user's clear intent.`,
+    `Be concise (under 200 words) in your text responses.`,
+  ].join("\n");
 }
 
 // ── Response types ────────────────────────────────────────────────────────────
@@ -324,10 +610,15 @@ export type AIResponse = AIAnswer | AIActionProposal;
 // ── Main AI call ──────────────────────────────────────────────────────────────
 
 /**
- * Calls OpenAI with a compact user-context system prompt and bounded output tokens.
+ * Calls OpenAI with tool-calling enabled.
  *
- * Returns either a plain answer or a structured action proposal. The caller is
- * responsible for validating any proposedAction args with Zod before writing to DB.
+ * Query tools (get_spending_breakdown, get_budget_status, get_savings_progress,
+ * get_recent_transactions) are executed server-side automatically and results are
+ * fed back to the model (up to 3 iterations).
+ *
+ * Write tools (create_transaction, create_budget, update_budget,
+ * create_savings_goal, create_bill) are returned as AIActionProposal to the
+ * client for user confirmation before any DB write occurs.
  */
 export async function callAI(
   userId: string,
@@ -335,12 +626,16 @@ export async function callAI(
   history: ChatHistoryItem[]
 ): Promise<AIResponse> {
   const client = getOpenAIClient();
-  const context = await buildUserContext(userId);
-  const systemPrompt = buildSystemPrompt(context);
-  const trimmedHistory = truncateHistory(history, 6);
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { currency: true },
+  });
+  const currency = user?.currency ?? "USD";
+
+  const trimmedHistory = truncateHistory(history, 6);
   const messages: OpenAI.ChatCompletionMessageParam[] = [
-    { role: "system", content: systemPrompt },
+    { role: "system", content: buildSystemPrompt(currency) },
     ...trimmedHistory.map((h) => ({
       role: h.role as "user" | "assistant",
       content: h.content,
@@ -349,19 +644,83 @@ export async function callAI(
   ];
 
   const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  const allTools = [...QUERY_TOOLS, ...WRITE_TOOLS];
 
-  const completion = await client.chat.completions.create({
+  for (let iteration = 0; iteration < 3; iteration++) {
+    const completion = await client.chat.completions.create({
+      model,
+      messages,
+      tools: allTools,
+      tool_choice: "auto",
+      max_tokens: 1000,
+      temperature: 0.3,
+    });
+
+    const choice = completion.choices[0];
+    const assistantMsg = choice.message;
+
+    // Model returned a plain-text answer (no tool calls)
+    if (!assistantMsg.tool_calls?.length || choice.finish_reason === "stop") {
+      return { type: "answer", content: assistantMsg.content ?? "" };
+    }
+
+    // Check if any call is a write tool — return proposal immediately
+    const writeCall = assistantMsg.tool_calls.find((tc) =>
+      WRITE_TOOL_NAMES.has(tc.function.name)
+    );
+    if (writeCall) {
+      let args: Record<string, unknown> = {};
+      try {
+        args = JSON.parse(writeCall.function.arguments || "{}") as Record<string, unknown>;
+      } catch {
+        // malformed args — fall through to answer
+      }
+      const summary =
+        typeof args.summary === "string" ? args.summary : `Proposed: ${writeCall.function.name}`;
+      // Strip the meta summary field from the actual action args
+      const { summary: _summary, ...actionArgs } = args;
+      return {
+        type: "action",
+        summary,
+        proposedAction: { type: writeCall.function.name, args: actionArgs },
+      };
+    }
+
+    // All calls are query tools — execute them and feed results back
+    messages.push(assistantMsg);
+
+    for (const tc of assistantMsg.tool_calls) {
+      if (!QUERY_TOOL_NAMES.has(tc.function.name)) continue;
+      let toolArgs: Record<string, unknown> = {};
+      try {
+        toolArgs = JSON.parse(tc.function.arguments || "{}") as Record<string, unknown>;
+      } catch {
+        // empty args is fine
+      }
+      const result = await executeQueryTool(userId, tc.function.name, toolArgs, currency);
+      messages.push({
+        role: "tool",
+        tool_call_id: tc.id,
+        content: result,
+      });
+    }
+  }
+
+  // Exhausted query-tool iterations — ask for a plain answer without tools
+  const finalCompletion = await client.chat.completions.create({
     model,
     messages,
-    response_format: { type: "json_object" },
     max_tokens: 800,
     temperature: 0.3,
   });
 
-  const raw = completion.choices[0]?.message?.content ?? "";
-
-  return parseAIResponse(raw);
+  return {
+    type: "answer",
+    content: finalCompletion.choices[0]?.message?.content ?? "",
+  };
 }
+
+// ── Legacy JSON-mode parser (kept for unit tests) ─────────────────────────────
 
 /**
  * Parses the raw JSON string returned by the model into a typed AIResponse.
@@ -394,7 +753,6 @@ export function parseAIResponse(raw: string): AIResponse {
       return { type: "answer", content: parsed.content };
     }
 
-    // Last resort: stringify whatever we got
     return { type: "answer", content: raw };
   } catch {
     return { type: "answer", content: raw };
