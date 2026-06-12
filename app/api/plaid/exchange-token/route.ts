@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { plaidClient } from "@/lib/plaid";
 import { getAuthenticatedUser } from "@/lib/auth";
