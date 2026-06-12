@@ -10,7 +10,7 @@ import {
   type DashboardBill,
 } from "@/components/dashboard/UpcomingBillsTeaser";
 import { SavingsGoalsTeaser } from "@/components/dashboard/SavingsGoalsTeaser";
-import { AiTipPlaceholder } from "@/components/dashboard/AiTipPlaceholder";
+import { AiInsightsCard } from "@/components/dashboard/AiInsightsCard";
 import { NetWorthTeaser } from "@/components/dashboard/NetWorthTeaser";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { getNetWorthSummary } from "@/lib/networth";
@@ -266,7 +266,7 @@ export default async function DashboardPage() {
         <NetWorthTeaser totals={netWorthTotals} currency={user.currency} locale={user.locale} />
       </div>
 
-      <AiTipPlaceholder />
+      <AiInsightsCard />
     </div>
   );
 }
