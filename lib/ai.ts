@@ -212,7 +212,7 @@ export function truncateHistory(history: ChatHistoryItem[], maxTurns = 6): ChatH
 
 // ── Tool definitions ──────────────────────────────────────────────────────────
 
-const QUERY_TOOLS: OpenAI.ChatCompletionTool[] = [
+const QUERY_TOOLS: OpenAI.Chat.Completions.ChatCompletionFunctionTool[] = [
   {
     type: "function",
     function: {
@@ -291,7 +291,7 @@ const QUERY_TOOLS: OpenAI.ChatCompletionTool[] = [
   },
 ];
 
-const WRITE_TOOLS: OpenAI.ChatCompletionTool[] = [
+const WRITE_TOOLS: OpenAI.Chat.Completions.ChatCompletionFunctionTool[] = [
   {
     type: "function",
     function: {
@@ -664,10 +664,14 @@ export async function callAI(
       return { type: "answer", content: assistantMsg.content ?? "" };
     }
 
-    // Check if any call is a write tool — return proposal immediately
-    const writeCall = assistantMsg.tool_calls.find((tc) =>
-      WRITE_TOOL_NAMES.has(tc.function.name)
+    // Narrow to standard function tool calls only (SDK v5+ has a custom-tool union variant)
+    const fnCalls = assistantMsg.tool_calls.filter(
+      (tc): tc is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall =>
+        tc.type === "function"
     );
+
+    // Check if any call is a write tool — return proposal immediately
+    const writeCall = fnCalls.find((tc) => WRITE_TOOL_NAMES.has(tc.function.name));
     if (writeCall) {
       let args: Record<string, unknown> = {};
       try {
@@ -678,7 +682,8 @@ export async function callAI(
       const summary =
         typeof args.summary === "string" ? args.summary : `Proposed: ${writeCall.function.name}`;
       // Strip the meta summary field from the actual action args
-      const { summary: _summary, ...actionArgs } = args;
+      const actionArgs: Record<string, unknown> = { ...args };
+      delete actionArgs.summary;
       return {
         type: "action",
         summary,
@@ -689,7 +694,7 @@ export async function callAI(
     // All calls are query tools — execute them and feed results back
     messages.push(assistantMsg);
 
-    for (const tc of assistantMsg.tool_calls) {
+    for (const tc of fnCalls) {
       if (!QUERY_TOOL_NAMES.has(tc.function.name)) continue;
       let toolArgs: Record<string, unknown> = {};
       try {

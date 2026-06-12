@@ -53,3 +53,6 @@ debug-*.log
 /public/fallback-*.js
 
 .vercel
+
+# clerk configuration (can include secrets)
+/.clerk/
